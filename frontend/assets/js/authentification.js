@@ -1,40 +1,4 @@
 $(document).ready(function () {
-
-    // LOGIN
-    $("#loginForm").submit(function (e) {
-        e.preventDefault();
-
-        let email = $("#loginEmail").val();
-        let password = $("#loginPassword").val();
-        let remember = $("#rememberMe").is(":checked");
-
-        $.ajax({
-            type: "POST",
-            url: "../userServiceHandler.php",
-            cache: false,
-            data: {
-                method: "loginUser",
-                param: JSON.stringify({
-                    email: email,
-                    password: password,
-                    remember: remember
-                })
-            },
-            dataType: "json",
-            success: function (response) {
-
-                if (response.success) {
-                    $("#loginMessage").text("Login successful");
-                    window.location.href = "../index.html";
-                } else {
-                    $("#loginMessage").text(response.message);
-                }
-            }
-        });
-    });
-
-
-    // REGISTER
     $("#registerForm").submit(function (e) {
         e.preventDefault();
 
@@ -45,33 +9,34 @@ $(document).ready(function () {
         let confirmPassword = $("#confirmPassword").val();
 
         if (password !== confirmPassword) {
-            $("#registerMessage").text("Passwords do not match");
+            $("#registerMessage").text("Passwords do not match").css("color", "red");
             return;
         }
 
         $.ajax({
             type: "POST",
-            url: "../userServiceHandler.php",
+            url: "../../backend/services/userServiceHandler.php",
             cache: false,
             data: {
                 method: "registerUser",
-                param: JSON.stringify({
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    password: password
-                })
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                password: password
             },
             dataType: "json",
             success: function (response) {
-
                 if (response.success) {
-                    $("#registerMessage").text("Registration successful");
+                    $("#registerMessage").text(response.message).css("color", "green");
+                    $("#registerForm")[0].reset();
                 } else {
-                    $("#registerMessage").text(response.message);
+                    $("#registerMessage").text(response.message).css("color", "red");
                 }
+            },
+            error: function (xhr) {
+                console.error(xhr.responseText);
+                $("#registerMessage").text("Server-Fehler aufgetreten.").css("color", "red");
             }
         });
     });
-
 });
