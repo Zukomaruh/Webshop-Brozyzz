@@ -11,11 +11,6 @@ class UserDataHandler {
 
     public function registerUser($userData) {
         try {
-            // Check ob Daten da sind
-            if (!isset($userData['firstName']) || empty($userData['firstName'])) {
-                return ["success" => false, "message" => "Vorname fehlt im Backend!"];
-            }
-
             $sql = "INSERT INTO users (firstname, lastname, email, password, role)
                     VALUES (:fname, :lname, :email, :pass, :role)";
 
