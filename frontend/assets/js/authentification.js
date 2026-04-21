@@ -39,4 +39,36 @@ $(document).ready(function () {
             }
         });
     });
+
+    // LOGIN
+    $("#loginForm").submit(function (e) {
+        e.preventDefault();
+
+        let email = $("#loginEmail").val();
+        let password = $("#loginPassword").val();
+
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/userServiceHandler.php",
+            cache: false,
+            data: {
+                method: "loginUser",
+                email: email,
+                password: password
+            },
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    $("#loginMessage").text(response.message).css("color", "green");
+                    // Weiterleitung zum Index nach Erfolg
+                    setTimeout(() => { window.location.href = "../index.html"; }, 1000);
+                } else {
+                    $("#loginMessage").text(response.message).css("color", "red");
+                }
+            },
+            error: function () {
+                $("#loginMessage").text("Server-Fehler beim Login.").css("color", "red");
+            }
+        });
+    });
 });
