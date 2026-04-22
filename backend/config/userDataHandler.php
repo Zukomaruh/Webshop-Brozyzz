@@ -55,4 +55,15 @@ class UserDataHandler {
 
         return ["success" => false, "message" => "E-Mail oder Passwort falsch."];
     }
+
+    public function checkAdminSession() {
+        if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+        // Prüfen ob eingeloggt UND ob die Rolle admin ist
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+            return ["isAdmin" => true];
+        }
+
+        return ["isAdmin" => false];
+    }
 }

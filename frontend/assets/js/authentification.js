@@ -57,11 +57,19 @@ $(document).ready(function () {
                 password: password
             },
             dataType: "json",
+            // Im Login-AJAX unter success:
             success: function (response) {
                 if (response.success) {
                     $("#loginMessage").text(response.message).css("color", "green");
-                    // Weiterleitung zum Index nach Erfolg
-                    setTimeout(() => { window.location.href = "../index.html"; }, 1000);
+
+                    setTimeout(() => {
+                        // Rollenprüfung für die Weiterleitung
+                        if (response.user.role === 'admin') {
+                            window.location.href = "admin.html";
+                        } else {
+                            window.location.href = "../index.html";
+                        }
+                    }, 1000);
                 } else {
                     $("#loginMessage").text(response.message).css("color", "red");
                 }
