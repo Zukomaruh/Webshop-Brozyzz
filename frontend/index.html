@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <title>Homepage</title>
     <script src="components/header.js"></script>
+    <title>Homepage</title>
 </head>
-<body class="d-flex justify-content-center align-items-center vh-100">
-
+<body>
+<div w3-include-html="components/navbar.html"></div>
 <a href="pages/login.html" class="btn btn-primary me-2">Login</a>
 <a href="pages/registration.html" class="btn btn-outline-primary">Registrieren</a>
-
+<script src="components/includeLogic.js"></script>
+<script>includeHTML();</script>
 </body>
 </html>

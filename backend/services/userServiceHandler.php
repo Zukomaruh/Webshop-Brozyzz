@@ -1,4 +1,5 @@
 <?php
+session_start(); //Für Login Status!
 require_once "userLogic.php";
 
 // Wir nehmen das ganze POST Array

@@ -12,6 +12,8 @@ class UserLogic {
         switch ($method) {
             case "registerUser":
                 return $this->userDataHandler->registerUser($data);
+            case "loginUser":
+                return $this->userDataHandler->loginUser($data);
             default:
                 return ["success" => false, "message" => "Methode nicht erlaubt"];
         }
