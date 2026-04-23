@@ -14,6 +14,8 @@ class UserLogic {
                 return $this->userDataHandler->registerUser($data);
             case "loginUser":
                 return $this->userDataHandler->loginUser($data);
+            case "checkAdminAccess":
+                return $this->userDataHandler->checkAdminSession();
             default:
                 return ["success" => false, "message" => "Methode nicht erlaubt"];
         }
