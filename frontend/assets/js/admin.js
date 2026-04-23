@@ -26,4 +26,33 @@ $(document).ready(function () {
             }
         });
     }
+
+    $("#createProductForm").submit(function (e) {
+        e.preventDefault();
+
+        let formData = new FormData(this);
+        formData.append("method", "createProduct");
+
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/productServiceHandler.php",
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    $("#productMessage").text(response.message).css("color", "green");
+                    $("#createProductForm")[0].reset();
+                } else {
+                    $("#productMessage").text(response.message).css("color", "red");
+                }
+            },
+            error: function (xhr) {
+                console.error(xhr.responseText);
+                $("#productMessage").text("Server-Fehler beim Speichern.").css("color", "red");
+            }
+        });
+    });
+
 });

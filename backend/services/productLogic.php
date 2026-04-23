@@ -8,12 +8,16 @@ class ProductLogic {
         $this->dh = new ProductDataHandler();
     }
 
-    public function handleRequest($method) {
+    public function handleRequest($method, $data = [], $files = []) {
         switch ($method) {
             case "getAllProducts":
                 return $this->dh->getAllProducts();
+
+            case "createProduct":
+                return $this->dh->createProduct($data, $files["image"] ?? null);
+
             default:
-                return null;
+                return ["success" => false, "message" => "Methode nicht erlaubt"];
         }
     }
 }
