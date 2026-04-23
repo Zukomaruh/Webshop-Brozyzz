@@ -1,17 +1,64 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8"> <!-- steht zwar in header.js aber wird nicht übernommen ? -->
     <title>Admin-Bereich</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="../components/header.js"></script>
 </head>
 <body style="display:none;">
 
 <div class="container mt-5">
-    <h1>Hallo Admin</h1>
-    <div class="alert alert-info">Dies ist die geschützte Admin-Seite.</div>
+    <h1 class="mb-4">Hallo Admin</h1>
+    <div class="alert alert-info">Hier kannst du neue Produkte anlegen.</div>
 
-    <textarea id="adminNote" class="form-control" rows="3">Hallo Admin, hier kannst du bald Produkte anlegen.</textarea>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h3 class="mb-4">Neues Produkt</h3>
+
+            <form id="createProductForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="productName" class="form-label">Produktname</label>
+                    <input type="text" class="form-control" id="productName" name="name" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="productDescription" class="form-label">Beschreibung</label>
+                    <textarea class="form-control" id="productDescription" name="description" rows="4" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="productPrice" class="form-label">Preis</label>
+                    <input type="number" class="form-control" id="productPrice" name="price" step="0.01" min="0" required>
+                </div>
+
+                <!-- Dropdown Menü mit provisorischen Kategorien, würde auch mit Texteingabefeld gehen... -->
+                <div class="mb-3">
+                    <label for="productCategory" class="form-label">Kategorie</label>
+                    <select class="form-control" id="productCategory" name="category" required>
+                        <option value="">Bitte wählen</option>
+                        <option value="Supplements">Supplements</option>
+                        <option value="Clothing">Clothing</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="Accessories">Accessories</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="productRating" class="form-label">Bewertung (1-5)</label>
+                    <input type="number" class="form-control" id="productRating" name="rating" min="1" max="5" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="productImage" class="form-label">Produktbild</label>
+                    <input type="file" class="form-control" id="productImage" name="image" accept=".jpg,.jpeg,.png,.webp" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Produkt anlegen</button>
+            </form>
+
+            <div id="productMessage" class="mt-3 text-center"></div>
+        </div>
+    </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
