@@ -66,4 +66,11 @@ class UserDataHandler {
 
         return ["isAdmin" => false];
     }
+
+    public function logoutUser()
+    {
+        $_SESSION = [];
+        session_destroy();
+        return ["success" => true, "message" => "Logout erfolgreich!"];
+    }
 }
