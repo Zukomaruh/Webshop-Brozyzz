@@ -22,7 +22,7 @@ nav.innerHTML = `
                     <a href="${base}pages/registration.html" class="nav-link">Register</a>
                 </li>
                 <li class="nav-item">
-                    <a href="${base}index.html" class="nav-link">Logout</a>
+                    <a href="${base}pages/logout.html" class="nav-link">Logout</a>
                 </li>
                 <li class="nav-item">
                     <a href="${base}pages/admin.html" class="nav-link">Admin</a>

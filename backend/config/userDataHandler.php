@@ -66,4 +66,21 @@ class UserDataHandler {
 
         return ["isAdmin" => false];
     }
+
+    public function logoutUser()
+    {
+        $_SESSION = [];
+        session_destroy();
+        return ["success" => true, "message" => "Logout erfolgreich!"];
+    }
+
+    //checkt session status und User-role für Zugriffskontrolle
+    public function checkSession()
+    {
+        if(session_status() == PHP_SESSION_NONE){ session_status(); }
+        if(isset($_SESSION['user_id'])){
+            return ["loggedIn" => true, "role" => $_SESSION['role'],"firstname" => $_SESSION['firstname']];
+        }
+        return ["loggedIn" => false];
+    }
 }

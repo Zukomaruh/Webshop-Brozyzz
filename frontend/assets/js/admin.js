@@ -1,7 +1,8 @@
 $(document).ready(function () {
 
     // Prüffunktion beim Laden der Seite
-    checkAccess();
+    requireAdmin();
+    /*checkAccess();
 
     function checkAccess() {
         $.ajax({
@@ -27,6 +28,8 @@ $(document).ready(function () {
         });
     }
 
+     */
+    $("body").show();
     $("#createProductForm").submit(function (e) {
         e.preventDefault();
 
