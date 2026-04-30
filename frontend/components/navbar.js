@@ -29,7 +29,7 @@ nav.innerHTML = `
                 </li>
             </ul>
             <div class="d-flex gap-2">
-                <a href="${base}pages/basket.html" class="btn btn-warning">Basket</a>
+                <a href="${base}pages/basket.html" class="btn btn-warning">Basket <span id="cartBadge" class="badge bg-secondary">0</span></a>
                 <a href="${base}pages/profile.html" class="btn btn-warning">Profile</a>
             </div>
         </div>
@@ -38,3 +38,30 @@ nav.innerHTML = `
 
 //<nav> wird in body zuoberst eingebunden
 document.body.prepend(nav);
+
+// Funktion zum Aktualisieren des Badges
+window.refreshCartBadge = function() {
+    // Nutzt deine 'base' Variable aus der navbar.js
+    const backendUrl = base + '../backend/services/cartServiceHandler.php';
+
+    $.ajax({
+        type: "GET",
+        url: backendUrl,
+        data: { method: "getCartCount" },
+        dataType: "json",
+        success: function (response) {
+            const badge = $("#cartBadge"); // Wir nutzen jQuery, da es eh geladen sein muss
+            if (response.count > 0) {
+                badge.text(response.count).show();
+            } else {
+                badge.hide();
+            }
+        },
+        error: function() {
+            console.log("Navbar: Counter konnte nicht geladen werden.");
+        }
+    });
+};
+
+// Einmal direkt beim Laden der Navbar ausführen
+window.refreshCartBadge();

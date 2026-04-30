@@ -18,6 +18,13 @@ class ProductDataHandler {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getProductById($id) {
+            $sql = "SELECT * FROM products WHERE product_id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $id]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function createProduct($productData, $imageFile) {
         $name = trim($productData["name"] ?? "");
         $description = trim($productData["description"] ?? "");

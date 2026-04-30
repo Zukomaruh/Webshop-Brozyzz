@@ -3,9 +3,33 @@
 <head>
     <script src="../components/header.js"></script>
     <title>Basket</title>
+    <!--Braucht man für Euro-Zeichen Display-->
+    <meta charset="UTF-8">
 </head>
 <body>
-<h1>Basket</h1>
+<div class="container mt-5">
+    <h2>Dein Warenkorb</h2>
+    <table class="table mt-4">
+        <thead>
+        <tr>
+            <th>Produkt</th>
+            <th>Preis</th>
+            <th>Anzahl</th>
+            <th>Gesamt</th>
+        </tr>
+        </thead>
+        <tbody id="cartTableBody">
+        <!-- Wird per JS befüllt -->
+        </tbody>
+        <tfoot id="cartTableFoot">
+        <!-- Gesamtsumme kommt hier rein -->
+        </tfoot>
+    </table>
+    <a href="../index.html" class="btn btn-secondary">Weiter einkaufen</a>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="../components/navbar.js"></script>
+<script src="../assets/js/basket.js"></script>
 </body>
 </html>
