@@ -1,6 +1,5 @@
 $(document).ready(function () {
     loadProducts();
-    updateCartCounter(); // Beim Laden der Seite prüfen
 
     function loadProducts() {
         $.ajax({
@@ -48,23 +47,6 @@ $(document).ready(function () {
         });
     }
 
-    function updateCartCounter() {
-            $.ajax({
-                type: "GET",
-                url: "../backend/services/cartServiceHandler.php",
-                data: { method: "getCartCount" },
-                dataType: "json",
-                success: function (response) {
-                    // Wenn die Zahl 0 ist, können wir sie auch ausblenden, sonst anzeigen
-                    if (response.count > 0) {
-                        $("#cartBadge").text(response.count).show();
-                    } else {
-                        $("#cartBadge").hide();
-                    }
-                }
-            });
-        }
-
     // Event Listener für "Add to Cart" (Delegation für dynamische Elemente)
     $(document).on("click", ".btn-add-cart", function () {
         let productId = $(this).data("id");
@@ -78,13 +60,10 @@ $(document).ready(function () {
             },
             dataType: "json",
             success: function (response) {
-                if (response.success) {
-                    //hier counter update auf add-click
-                    updateCartCounter();
-
-                    //Kurzes Feedback für den User
-                    console.log("Produkt " + productId + " wurde hinzugefügt.");
+                if (typeof window.refreshCartBadge === "function") {
+                    window.refreshCartBadge();
                 }
+                console.log("Produkt hinzugefügt");
             },
             error: function () {
                 console.error("Fehler beim Hinzufügen zum Warenkorb.");

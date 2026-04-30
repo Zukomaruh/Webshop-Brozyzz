@@ -68,6 +68,9 @@ $(document).ready(function () {
             data: { method: "changeQuantity", productId: id, delta: delta },
             success: function () {
                 loadBasket(); // Nach Änderung Liste neu laden
+                if (typeof window.refreshCartBadge === "function") {
+                    window.refreshCartBadge(); // Badge in der Navbar neu laden
+                }
             }
         });
     });
@@ -82,6 +85,9 @@ $(document).ready(function () {
                 data: { method: "removeFromCart", productId: id },
                 success: function () {
                     loadBasket(); // Nach Löschen Liste neu laden
+                    if (typeof window.refreshCartBadge === "function") {
+                        window.refreshCartBadge(); // Badge in der Navbar neu laden
+                    }
                 }
             });
         }
