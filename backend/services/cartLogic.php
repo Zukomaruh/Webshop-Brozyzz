@@ -16,6 +16,10 @@ class CartLogic {
                 return $this->getCart();
             case "getCartCount":
                 return $this->getCartCount();
+            case "changeQuantity":
+                return $this->changeQuantity($data['productId'], $data['delta']);
+            case "removeFromCart":
+                return $this->removeFromCart($data['productId']);
             default:
                 return null;
         }
@@ -58,5 +62,23 @@ class CartLogic {
             }
         }
         return ["count" => $count];
+    }
+
+    private function changeQuantity($id, $delta) {
+        if (isset($_SESSION['cart'][$id])) {
+            $newQty = $_SESSION['cart'][$id] + (int)$delta;
+            //Untergrenze 1 einhalten, null produkte nur durch removeFromCart möglich
+            if ($newQty >= 1) {
+                $_SESSION['cart'][$id] = $newQty;
+            }
+        }
+        return ["success" => true];
+    }
+
+    private function removeFromCart($id) {
+        if (isset($_SESSION['cart'][$id])) {
+            unset($_SESSION['cart'][$id]);
+        }
+        return ["success" => true];
     }
 }
