@@ -32,8 +32,8 @@ $(document).ready(function () {
                                     <h5 class="card-title">${product.name}</h5>
                                     <p class="card-text text-truncate">${product.description}</p>
                                     <p class="card-text"><small class="text-muted">Kategorie: ${product.category}</small></p>
-                                    <p class="card-text fw-bold">${product.price} Euro</p>
-                                    <button class="btn btn-outline-primary w-100">In den Warenkorb</button>
+                                    <p class="card-text fw-bold">${product.price}€</p>
+                                    <button class="btn btn-outline-primary w-100 btn-add-cart" data-id="${product.product_id}">In den Warenkorb</button>
                                 </div>
                             </div>
                         </div>
@@ -46,4 +46,24 @@ $(document).ready(function () {
             }
         });
     }
+
+    // Event Listener für "Add to Cart" (Delegation für dynamische Elemente)
+    $(document).on("click", ".btn-add-cart", function () {
+        let productId = $(this).data("id"); // Wir holen die ID aus einem data-Attribut
+
+        $.ajax({
+            type: "POST",
+            url: "../backend/services/cartServiceHandler.php",
+            data: {
+                method: "addToCart",
+                productId: productId
+            },
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    alert("Produkt hinzugefügt!");
+                }
+            }
+        });
+    });
 });
