@@ -29,7 +29,7 @@ nav.innerHTML = `
                 </li>
             </ul>
             <div class="d-flex gap-2">
-                <a href="${base}pages/basket.html" class="btn btn-warning">Basket</a>
+                <a href="${base}pages/basket.html" class="btn btn-warning">Basket <span id="cartBadge" class="badge bg-secondary">0</span></a>
                 <a href="${base}pages/profile.html" class="btn btn-warning">Profile</a>
             </div>
         </div>

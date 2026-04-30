@@ -14,6 +14,8 @@ class CartLogic {
                 return $this->addToCart($data['productId']);
             case "getCart":
                 return $this->getCart();
+            case "getCartCount":
+                return $this->getCartCount();
             default:
                 return null;
         }
@@ -46,5 +48,15 @@ class CartLogic {
             }
         }
         return $cartItems;
+    }
+
+    private function getCartCount() {
+        $count = 0;
+        if (isset($_SESSION['cart'])) {
+            foreach ($_SESSION['cart'] as $qty) {
+                $count += $qty;
+            }
+        }
+        return ["count" => $count];
     }
 }
