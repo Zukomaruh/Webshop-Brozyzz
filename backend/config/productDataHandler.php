@@ -25,6 +25,26 @@ class ProductDataHandler {
             return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function getAllCategories() {
+        $sql = "SELECT DISTINCT category
+                FROM products
+                WHERE category IS NOT NULL AND category != ''
+                ORDER BY category ASC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    public function getProductsByCategory($category) {
+        $sql = "SELECT * FROM products WHERE category = :category";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':category' => $category]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function createProduct($productData, $imageFile) {
         $name = trim($productData["name"] ?? "");
         $description = trim($productData["description"] ?? "");

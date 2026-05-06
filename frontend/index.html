@@ -9,26 +9,32 @@
 
 <div class="container mt-5">
     <div class="row">
+
+        <!-- Linke Seite: Kategorien -->
         <div class="col-md-3">
-            <h4>Filter</h4>
-            <ul class="list-group">
-                <li class="list-group-item">Kategorie</li>
-                <li class="list-group-item">Preisbereich</li>
-                <li class="list-group-item">Bewertung</li>
-            </ul>
+            <h4>Kategorien</h4>
+
+            <div id="categoryContainer" class="list-group">
+                <div class="list-group-item">Lade Kategorien...</div>
+            </div>
         </div>
 
+        <!-- Rechte Seite: Produkte -->
         <div class="col-md-9">
+            <h4 class="mb-3">Produkte</h4>
+
             <div id="productContainer" class="row">
                 <div class="text-center">Lade Produkte...</div>
             </div>
         </div>
+
     </div>
 </div>
 
-<!--Scripte:-->
+<!-- Scripte -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="components/navbar.js"></script>
-<script src="assets/js/index.js"></script>
+<script src="assets/js/index.js?v=1"></script>
+
 </body>
 </html>
