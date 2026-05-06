@@ -5,11 +5,14 @@
     <title>Admin-Bereich</title>
 </head>
 <body style="display:none;">
-
-<div class="container mt-5">
+<div class="container mt-2">
     <h1 class="mb-4">Hallo Admin</h1>
-    <div class="alert alert-info">Hier kannst du neue Produkte anlegen.</div>
+    <button id="btnShowProductList" class="btn btn-primary">Product list</button>
+    <button id="btnShowAddProduct" class="btn btn-outline-primary ms-2">Add product</button>
+</div>
 
+<div id="addProductView" class="container mt-2" style="display:none;">
+    <div class="alert alert-info">Hier kannst du neue Produkte anlegen.</div>
     <div class="card shadow-sm">
         <div class="card-body">
             <h3 class="mb-4">Neues Produkt</h3>
@@ -58,6 +61,24 @@
             <div id="productMessage" class="mt-3 text-center"></div>
         </div>
     </div>
+</div>
+<div id="productListView" class="container mt-2">
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Picture</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Category</th>
+            <th>Rating</th>
+            <th>Aktionen</th>
+        </tr>
+        </thead>
+        <tbody id="productTableBody">
+        <!-- wird per JS befüllt -->
+        </tbody>
+    </table>
 </div>
 
 <!--Scripte:-->
