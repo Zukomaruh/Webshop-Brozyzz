@@ -17,10 +17,13 @@ class ProductLogic {
                 return $this->dh->createProduct($data, $files["image"] ?? null);
 
             case "getAllCategories":
-                        return $this->dh->getAllCategories();
+                return $this->dh->getAllCategories();
 
             case "getProductsByCategory":
-                        return $this->dh->getProductsByCategory($data["category"] ?? "");
+                return $this->dh->getProductsByCategory($data["category"] ?? "");
+
+            case "searchProducts":
+                return $this->dh->searchProducts($data["query"] ?? "");
 
             default:
                 return ["success" => false, "message" => "Methode nicht erlaubt"];

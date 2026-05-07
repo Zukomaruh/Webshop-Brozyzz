@@ -2,11 +2,11 @@
 
 // --- Meta: charset ---
 //erstellt html Element:
-const metaCharset = document.createElement("meta");
+//const metaCharset = document.createElement("meta");
 //setzt Attribute in html Element:
-metaCharset.setAttribute("charset", "UTF-8");
+//metaCharset.setAttribute("charset", "UTF-8");
 //prepend bindet element im head ein (muss zuoberst eingebunden werden!!!)
-document.head.prepend(metaCharset);
+//document.head.prepend(metaCharset);
 /*
 Rest mit selber Logik eingebunden, mit dem Unterschied, dass sie
 mit appendChild eingebunden sind.

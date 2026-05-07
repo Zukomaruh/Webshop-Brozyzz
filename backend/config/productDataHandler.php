@@ -114,4 +114,12 @@ class ProductDataHandler {
             return ["success" => false, "message" => "DB-Fehler: " . $e->getMessage()];
         }
     }
+
+    public function searchProducts($query){
+        $sql = "SELECT * FROM products WHERE name LIKE :query";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':query' => '%'.$query.'%']);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
