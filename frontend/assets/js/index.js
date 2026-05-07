@@ -1,4 +1,5 @@
 $(document).ready(function () {
+    //timer for product Search
     let timer;
     // Beim Laden der Seite zuerst alle Kategorien aus der DB laden
     loadCategories();
