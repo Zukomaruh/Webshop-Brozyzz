@@ -1,7 +1,81 @@
 $(document).ready(function () {
-
+    //timer for product Search
+    let timer;
     // Beim Laden der Seite zuerst alle Kategorien aus der DB laden
     loadCategories();
+
+    // Wenn auf eine Kategorie geklickt wird:
+    // ohne Seitenreload neue Produkte laden
+    $(document).on("click", ".category-btn", function () {
+        let selectedCategory = $(this).data("category");
+
+        $(".category-btn").removeClass("active");
+        $(this).addClass("active");
+
+        loadProducts(selectedCategory);
+    });
+
+    // Produkt in den Warenkorb legen
+    $(document).on("click", ".btn-add-cart", function () {
+        let productId = $(this).data("id");
+
+        $.ajax({
+            type: "POST",
+            url: "../backend/services/cartServiceHandler.php",
+            data: {
+                method: "addToCart",
+                productId: productId
+            },
+            dataType: "json",
+
+            success: function () {
+                if (typeof window.refreshCartBadge === "function") {
+                    window.refreshCartBadge();
+                }
+
+                console.log("Produkt wurde zum Warenkorb hinzugefügt.");
+            },
+
+            error: function (xhr) {
+                console.error("Fehler beim Hinzufügen zum Warenkorb:", xhr.responseText);
+            }
+        });
+    });
+
+    $("#searchInput").on("input", function (event) {
+        if ($(this).val() !== "") {
+            $("#clearSearch").show();
+        } else {
+            $("#clearSearch").hide();
+        }
+        let query = $(this).val();
+        clearTimeout(timer);
+        if (query !== "") {
+            //timer so that not every char input produces an ajax call
+            timer = setTimeout(function () {
+                $.ajax({
+                    type: "GET",
+                    url: "../backend/services/productServiceHandler.php",
+                    data: { method: "searchProducts", query: query },
+                    dataType: "json",
+                    success: function (products) {
+                        renderProducts(products, "No Products Found");
+                    },
+                    error: function (xhr) {
+                        console.error("No products found", xhr.responseText);
+                    }
+                })
+            }, 300)
+        }else{
+            loadProducts("all")
+        }
+    });
+
+    $("#clearSearch").on("click", function () {
+        $("#searchInput").val("");
+        $(this).hide();
+        loadProducts("all");
+    });
 
     // Holt alle Kategorien, die aktuell in der products-Tabelle vorkommen
     function loadCategories() {
@@ -93,13 +167,13 @@ $(document).ready(function () {
     }
 
     // Zeigt die geladenen Produkte als Cards an
-    function renderProducts(products) {
+    function renderProducts(products, emptyMessage = "Keine Produkte in dieser Kategorie vorhanden.") {
         let container = $("#productContainer");
         container.empty();
 
         // Falls in der Kategorie keine Produkte vorhanden sind
         if (!products || products.length === 0) {
-            container.append('<div class="col-12 text-center">Keine Produkte in dieser Kategorie vorhanden.</div>');
+            container.append(`<div class="col-12 text-center">${emptyMessage}</div>`);
             return;
         }
 
@@ -157,44 +231,6 @@ $(document).ready(function () {
             container.append(productCard);
         });
     }
-
-    // Wenn auf eine Kategorie geklickt wird:
-    // ohne Seitenreload neue Produkte laden
-    $(document).on("click", ".category-btn", function () {
-        let selectedCategory = $(this).data("category");
-
-        $(".category-btn").removeClass("active");
-        $(this).addClass("active");
-
-        loadProducts(selectedCategory);
-    });
-
-    // Produkt in den Warenkorb legen
-    $(document).on("click", ".btn-add-cart", function () {
-        let productId = $(this).data("id");
-
-        $.ajax({
-            type: "POST",
-            url: "../backend/services/cartServiceHandler.php",
-            data: {
-                method: "addToCart",
-                productId: productId
-            },
-            dataType: "json",
-
-            success: function () {
-                if (typeof window.refreshCartBadge === "function") {
-                    window.refreshCartBadge();
-                }
-
-                console.log("Produkt wurde zum Warenkorb hinzugefügt.");
-            },
-
-            error: function (xhr) {
-                console.error("Fehler beim Hinzufügen zum Warenkorb:", xhr.responseText);
-            }
-        });
-    });
 
     // Verhindert, dass Sonderzeichen oder HTML im Produktnamen die Seite kaputt machen
     function escapeHtml(text) {

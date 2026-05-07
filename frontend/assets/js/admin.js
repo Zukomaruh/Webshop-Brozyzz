@@ -20,7 +20,7 @@ $(document).ready(function () {
         $("#btnShowProductList").addClass("btn-primary").removeClass("btn-outline-primary");
         $("#btnShowAddProduct").addClass("btn-outline-primary").removeClass("btn-primary");
         //Nicht zwingend notwendig:
-        // loadProducts();
+        loadProducts();
     });
 
     $("#createProductForm").submit(function (e) {
