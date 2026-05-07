@@ -51,6 +51,7 @@ $(document).ready(function () {
         let query = $(this).val();
         clearTimeout(timer);
         if (query !== "") {
+            //timer so that not every char input produces an ajax call
             timer = setTimeout(function () {
                 $.ajax({
                     type: "GET",
