@@ -2,9 +2,10 @@
 const nav = document.createElement("nav");
 nav.setAttribute("class", "navbar navbar-expand-lg navbar-dark bg-dark");
 
-//fragt Seite ab um navigationspfade zu adaptieren (abhängig davon ob die aktuelle seite im Ordner pages ist)
+//fragt Seite ab, um navigationspfade zu adaptieren (abhängig davon, ob die aktuelle seite im Ordner pages ist)
 const inPages = window.location.pathname.includes('/pages/');
 const base = inPages ? '../' : '';
+const backendBase = inPages ? '../../' : '../';
 
 //navbar als html code in <nav> Element einbinden
 nav.innerHTML = `
@@ -14,19 +15,8 @@ nav.innerHTML = `
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a href="${base}pages/login.html" class="nav-link">Login</a>
-                </li>
-                <li class="nav-item">
-                    <a href="${base}pages/registration.html" class="nav-link">Register</a>
-                </li>
-                <li class="nav-item">
-                    <a href="${base}pages/logout.html" class="nav-link">Logout</a>
-                </li>
-                <li class="nav-item">
-                    <a href="${base}pages/admin.html" class="nav-link">Admin</a>
-                </li>
+            <ul class="navbar-nav me-auto" id="navLinks">
+                <!--wird mit AJAX call je nach Seite befüllt-->
             </ul>
             <div class="d-flex gap-2">
                 <a href="${base}pages/basket.html" class="btn btn-warning">Basket <span id="cartBadge" class="badge bg-secondary">0</span></a>
@@ -39,10 +29,53 @@ nav.innerHTML = `
 //<nav> wird in body zuoberst eingebunden
 document.body.prepend(nav);
 
+//AJAX call zum session status checken
+$.ajax({
+    type: "POST",
+    url: backendBase + "backend/services/userServiceHandler.php",
+    data: {method: "checkSession"},
+    dataType: "json",
+    success: function (response) {
+        console.log("Session Response:", response); //debugging
+
+        let html = '';
+
+        if(!response.loggedIn){
+            //nicht eingeloggt -> Login und Register sichtbar machen
+            html += `
+             <li class="nav-item">
+                <a href="${base}pages/login.html" class="nav-link">Login</a>
+             </li>
+             <li class="nav-item">
+                <a href="${base}pages/registration.html" class="nav-link">Register</a>
+             </li>`;
+        }else{
+            //eingeloggt -> Logout sichtbar
+            html += ` <li class="nav-item">
+                         <a href="${base}pages/logout.html" class="nav-link">Logout</a>
+                    </li>`;
+            if(response.role === "admin"){
+                html += `
+                <li class="nav-item">
+                    <a href="${base}pages/admin.html" class="nav-link">Admin</a>
+                </li>`;
+            }
+        }
+        $("#navLinks").html(html);
+    },
+    error: function () {
+        // Error-Fall: Nur Login anzeigen
+        $("#navLinks").html(`
+            <li class="nav-item">
+                <a href="${base}pages/login.html" class="nav-link">Login</a>
+            </li>`);
+    }
+});
+
 // Funktion zum Aktualisieren des Badges
 window.refreshCartBadge = function() {
     // Nutzt deine 'base' Variable aus der navbar.js
-    const backendUrl = base + '../backend/services/cartServiceHandler.php';
+    const backendUrl = backendBase + 'backend/services/cartServiceHandler.php';
 
     $.ajax({
         type: "GET",
