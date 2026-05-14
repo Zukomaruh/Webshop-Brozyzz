@@ -2,9 +2,8 @@ $(document).ready(function () {
 
     // Prüffunktion beim Laden der Seite
     requireAdmin();
-    $("body").show();
     loadProducts();
-
+    $("body").show();
     //switcht view
     $("#btnShowAddProduct").click(function () {
         $("#addProductView").show();
