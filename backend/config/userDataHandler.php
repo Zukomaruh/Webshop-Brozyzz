@@ -125,4 +125,109 @@ class UserDataHandler {
         $stmt = $this->db->prepare($sql); $stmt->execute([':uid' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
+
+    public function getUserProfile() {
+        if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+        // Sicherheitscheck: Ist überhaupt jemand eingeloggt?
+        if (!isset($_SESSION['user_id'])) {
+            return ["success" => false, "message" => "Unauthorized access. Please log in."];
+        }
+
+        try {
+            // Passwort wird absichtlich exkludiert!
+            $sql = "SELECT firstname, lastname, gender, username, email, address, zip, city, payment_method, payment_details
+                    FROM users
+                    WHERE user_id = :uid";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':uid' => $_SESSION['user_id']]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                return ["success" => true, "data" => $user];
+            }
+        } catch (PDOException $e) {
+            return ["success" => false, "message" => "Database error: " . $e->getMessage()];
+        }
+
+        return ["success" => false, "message" => "User profile not found."];
+    }
+
+    public function updateUserProfile($userData) {
+        if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+        if (!isset($_SESSION['user_id'])) {
+            return ["success" => false, "message" => "Unauthorized access."];
+        }
+
+        $requiredFields = ['gender', 'firstName', 'lastName', 'username', 'email', 'address', 'zip', 'city', 'paymentMethod', 'passwordConfirm'];
+        foreach ($requiredFields as $field) {
+            if (!isset($userData[$field]) || empty(trim($userData[$field]))) {
+                return ["success" => false, "message" => "Please fill in all required fields."];
+            }
+        }
+
+        try {
+            // 1. Passwort und aktuelle Zahlungsdetails abfragen
+            $userSql = "SELECT password, payment_method, payment_details FROM users WHERE user_id = :uid";
+            $userStmt = $this->db->prepare($userSql);
+            $userStmt->execute([':uid' => $_SESSION['user_id']]);
+            $currentUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$currentUser || !password_verify($userData['passwordConfirm'], $currentUser['password'])) {
+                return ["success" => false, "message" => "Confirmation failed. Password incorrect."];
+            }
+
+            // 2. Logik für sensible Kreditkartendaten:
+            // Wenn Methode Kreditkarte bleibt und das Feld leer übermittelt wurde, behalten wir die alte Nummer bei.
+            $finalPaymentDetails = $userData['paymentDetails'] ?? null;
+
+            if ($userData['paymentMethod'] === "Kreditkarte" && empty(trim($userData['paymentDetails']))) {
+                if ($currentUser['payment_method'] === "Kreditkarte") {
+                    $finalPaymentDetails = $currentUser['payment_details']; // Alte Karte retten
+                }
+            }
+
+            // 3. Update ausführen
+            $sql = "UPDATE users SET
+                        firstname = :fname,
+                        lastname = :lname,
+                        gender = :gender,
+                        username = :uname,
+                        email = :email,
+                        address = :address,
+                        zip = :zip,
+                        city = :city,
+                        payment_method = :pay_method,
+                        payment_details = :pay_details
+                    WHERE user_id = :uid";
+
+            $stmt = $this->db->prepare($sql);
+
+            $stmt->bindValue(":fname", $userData['firstName']);
+            $stmt->bindValue(":lname", $userData['lastName']);
+            $stmt->bindValue(":gender", $userData['gender']);
+            $stmt->bindValue(":uname", $userData['username']);
+            $stmt->bindValue(":email", $userData['email']);
+            $stmt->bindValue(":address", $userData['address']);
+            $stmt->bindValue(":zip", $userData['zip']);
+            $stmt->bindValue(":city", $userData['city']);
+            $stmt->bindValue(":pay_method", $userData['paymentMethod']);
+            $stmt->bindValue(":pay_details", $finalPaymentDetails);
+            $stmt->bindValue(":uid", $_SESSION['user_id']);
+
+            if ($stmt->execute()) {
+                $_SESSION['firstname'] = $userData['firstName'];
+                return ["success" => true, "message" => "Profile updated successfully!"];
+            }
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
+                return ["success" => false, "message" => "Username or Email address already in use."];
+            }
+            return ["success" => false, "message" => "Database error: " . $e->getMessage()];
+        }
+
+        return ["success" => false, "message" => "Failed to update profile."];
+    }
 }
