@@ -24,7 +24,6 @@ $(document).ready(function () {
         });
     }
 
-    // Felder befüllen und sensible Daten maskieren
     function fillFormFields(user) {
         $("#gender").val(user.gender);
         $("#firstName").val(user.firstname);
@@ -36,7 +35,6 @@ $(document).ready(function () {
         $("#city").val(user.city);
         $("#paymentMethod").val(user.payment_method);
 
-        // NEU: Kreditkartennummer für die reine Ansicht zensieren
         if (user.payment_method === "creditcard" && user.payment_details) {
             let maskedCard = maskCreditCard(user.payment_details);
             $("#paymentDetails").val(maskedCard);
@@ -47,27 +45,33 @@ $(document).ready(function () {
         toggleCreditCardDisplay(user.payment_method);
     }
 
-    // Hilfsfunktion: Macht aus "1234567812345678" -> "************5678"
     function maskCreditCard(cardNumber) {
-        let cleaned = cardNumber.replace(/\s+/g, ''); // Leerzeichen weg
+        let cleaned = cardNumber.replace(/\s+/g, '');
         if (cleaned.length < 4) return "****";
         let lastFour = cleaned.slice(-4);
         return "*".repeat(cleaned.length - 4) + lastFour;
     }
 
-    // "Edit Profile" geklickt
+    // Edit Profile Clicked
     $("#btnToggleEdit").click(function () {
         $("#profileForm").find('input, select').prop('disabled', false);
 
-        // Im Edit-Modus leeren wir das Kreditkartenfeld.
-        // Wenn der User es leer lässt, behalten wir im Backend die alte Karte bei.
         if ($("#paymentMethod").val() === "creditcard") {
             $("#paymentDetails").val('').attr("placeholder", "Enter new card number or leave empty to keep current");
-            $("#paymentDetails").prop('required', false); // Nicht zwingend required, da leer = behalten
+            $("#paymentDetails").prop('required', false);
         }
 
+        // Tausche Attrappe gegen echte Eingabefelder aus
+        $("#dummyPasswordGroup").attr("style", "display: none !important;");
+        $("#passwordChangeGroup").attr("style", "display: block !important;");
+
+        // Zeige restliche Kontrollbereiche
         $("#actionButtons").attr("style", "display: flex !important;");
         $("#passwordConfirmGroup").attr("style", "display: block !important;");
+
+        // Inputs leeren/vorbereiten
+        $("#newPassword").val('');
+        $("#confirmNewPassword").val('');
         $("#passwordConfirm").prop('required', true).val('');
 
         $(this).addClass("d-none");
@@ -81,7 +85,6 @@ $(document).ready(function () {
 
     $("#paymentMethod").change(function () {
         toggleCreditCardDisplay($(this).val());
-        // Falls im Edit-Modus auf Kreditkarte gewechselt wird, Placeholder setzen
         if ($(this).val() === "creditcard" && !$(this).is(':disabled')) {
             $("#paymentDetails").attr("placeholder", "Enter card number").prop('required', true);
         }
@@ -97,15 +100,38 @@ $(document).ready(function () {
 
     function switchToViewMode() {
         $("#profileForm").find('input, select').prop('disabled', true);
-        $("#paymentDetails").attr("placeholder", ""); // Placeholder entfernen
+        $("#paymentDetails").attr("placeholder", "");
+
+        // Tausche echte Eingabefelder wieder zurück gegen die Attrappe
+        $("#passwordChangeGroup").attr("style", "display: none !important;");
+        $("#dummyPasswordGroup").attr("style", "display: block !important;");
+
+        // Verstecke Kontrollbereiche
         $("#actionButtons").attr("style", "display: none !important;");
         $("#passwordConfirmGroup").attr("style", "display: none !important;");
+
+        $("#newPassword").val('');
+        $("#confirmNewPassword").val('');
         $("#passwordConfirm").prop('required', false).val('');
+
         $("#btnToggleEdit").removeClass("d-none");
     }
 
+    // Submit Form
     $("#profileForm").submit(function (e) {
         e.preventDefault();
+
+        let newPassword = $("#newPassword").val();
+        let confirmNewPassword = $("#confirmNewPassword").val();
+
+        // NEU: Zeigt dem User eine Fehlermeldung, wenn Passwörter ungleich sind
+        if (newPassword !== "" || confirmNewPassword !== "") {
+            if (newPassword !== confirmNewPassword) {
+                showMessage("New passwords do not match! Please check your input.", "danger");
+                $("#confirmNewPassword").val('').focus();
+                return;
+            }
+        }
 
         $.ajax({
             type: "POST",
@@ -122,8 +148,9 @@ $(document).ready(function () {
                 zip: $("#zip").val(),
                 city: $("#city").val(),
                 paymentMethod: $("#paymentMethod").val(),
-                paymentDetails: $("#paymentDetails").val(), // Schickt entweder neue Nummer oder Leerstring
-                passwordConfirm: $("#passwordConfirm").val()
+                paymentDetails: $("#paymentDetails").val(),
+                passwordConfirm: $("#passwordConfirm").val(),
+                newPassword: newPassword
             },
             dataType: "json",
             success: function (response) {
@@ -137,7 +164,7 @@ $(document).ready(function () {
                 }
             },
             error: function (xhr) {
-                console.error("Server-Fehler:", xhr.responseText);
+                console.error("Server Error:", xhr.responseText);
                 showMessage("Error saving profile changes.", "danger");
             }
         });

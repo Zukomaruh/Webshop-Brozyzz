@@ -85,7 +85,33 @@
                             </div>
                         </div>
 
-                        <!-- NEU: Passwort-Bestätigungs-Sektion (Standardmäßig versteckt) -->
+                        <!-- Optische Leseattrape des Passwort felds für den Lesemodus -> keine pw-Daten übertragen!-->
+                        <div id="dummyPasswordGroup" class="mb-3 mt-4">
+                            <h4 class="mb-3 text-secondary">Security</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" class="form-control" value="********" disabled>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Passwort-Änderungs-Sektion (Standardmäßig versteckt, überschreibt dummy feld oben im edit mode) -->
+                        <div id="passwordChangeGroup" class="p-3 bg-light rounded border mt-4" style="display: none !important;">
+                            <h4 class="mb-3 text-secondary">Change Password (Optional)</h4>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="newPassword" class="form-label">New Password</label>
+                                    <input type="password" class="form-control" id="newPassword">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="confirmNewPassword" class="form-label">Repeat New Password</label>
+                                    <input type="password" class="form-control" id="confirmNewPassword">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Passwort-Bestätigungs-Sektion (Standardmäßig versteckt) -->
                         <div id="passwordConfirmGroup" class="p-3 bg-light rounded border mt-4" style="display: none !important;">
                             <h5 class="text-danger mb-2">Confirm Changes</h5>
                             <p class="small text-muted">Please enter your current password to save these changes.</p>

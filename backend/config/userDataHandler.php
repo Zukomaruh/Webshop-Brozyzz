@@ -176,20 +176,27 @@ class UserDataHandler {
             $currentUser = $userStmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$currentUser || !password_verify($userData['passwordConfirm'], $currentUser['password'])) {
-                return ["success" => false, "message" => "Confirmation failed. Password incorrect."];
+                return ["success" => false, "message" => "Confirmation failed. Current password incorrect."];
             }
 
-            // 2. Logik für sensible Kreditkartendaten:
-            // Wenn Methode Kreditkarte bleibt und das Feld leer übermittelt wurde, behalten wir die alte Nummer bei.
+            // 2. Logik für Kreditkartendaten
             $finalPaymentDetails = $userData['paymentDetails'] ?? null;
-
             if ($userData['paymentMethod'] === "creditcard" && empty(trim($userData['paymentDetails']))) {
                 if ($currentUser['payment_method'] === "creditcard") {
-                    $finalPaymentDetails = $currentUser['payment_details']; // Alte Karte retten
+                    $finalPaymentDetails = $currentUser['payment_details'];
                 }
             }
 
-            // 3. Update ausführen
+            // 3. Dynamischer Passwort-Wechsel (Falls ausgefüllt)
+            $passwordUpdateString = "";
+            $updatedPasswordHash = null;
+
+            if (isset($userData['newPassword']) && !empty(trim($userData['newPassword']))) {
+                $passwordUpdateString = ", password = :new_pass";
+                $updatedPasswordHash = password_hash($userData['newPassword'], PASSWORD_DEFAULT);
+            }
+
+            // 4. Update ausführen (Query nutzt den dynamischen Passwort-String)
             $sql = "UPDATE users SET
                         firstname = :fname,
                         lastname = :lname,
@@ -201,6 +208,7 @@ class UserDataHandler {
                         city = :city,
                         payment_method = :pay_method,
                         payment_details = :pay_details
+                        $passwordUpdateString
                     WHERE user_id = :uid";
 
             $stmt = $this->db->prepare($sql);
@@ -216,6 +224,11 @@ class UserDataHandler {
             $stmt->bindValue(":pay_method", $userData['paymentMethod']);
             $stmt->bindValue(":pay_details", $finalPaymentDetails);
             $stmt->bindValue(":uid", $_SESSION['user_id']);
+
+            // Nur binden, wenn das Passwort tatsächlich geändert werden soll
+            if ($updatedPasswordHash !== null) {
+                $stmt->bindValue(":new_pass", $updatedPasswordHash);
+            }
 
             if ($stmt->execute()) {
                 $_SESSION['firstname'] = $userData['firstName'];
