@@ -25,7 +25,7 @@ class UserLogic {
             case "updateUserProfile":
                 return $this->userDataHandler->updateUserProfile($data);
             default:
-                return ["success" => false, "message" => "Methode nicht erlaubt"];
+                return ["success" => false, "message" => "Method not allowed"];
         }
     }
 }

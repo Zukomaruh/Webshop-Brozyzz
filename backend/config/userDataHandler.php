@@ -14,7 +14,7 @@ class UserDataHandler {
         $requiredFields = ['gender', 'firstName', 'lastName', 'username', 'email', 'address', 'zip', 'city', 'paymentMethod', 'password'];
         foreach ($requiredFields as $field) {
             if (!isset($userData[$field]) || empty(trim($userData[$field]))) {
-                return ["success" => false, "message" => "Bitte alle Pflichtfelder ausfüllen."];
+                return ["success" => false, "message" => "Please fill in all the required fields."];
             }
         }
 
@@ -39,16 +39,16 @@ class UserDataHandler {
             $stmt->bindValue(":role", 'user');
 
             if ($stmt->execute()) {
-                return ["success" => true, "message" => "Registrierung erfolgreich!"];
+                return ["success" => true, "message" => "Registration successful!"];
             }
         } catch (PDOException $e) {
             // Fängt Duplikate bei Email oder Username ab
             if ($e->getCode() == 23000) {
-                return ["success" => false, "message" => "Benutzername oder E-Mail-Adresse bereits vergeben."];
+                return ["success" => false, "message" => "Username or email address already in use."];
             }
-            return ["success" => false, "message" => "DB-Fehler: " . $e->getMessage()];
+            return ["success" => false, "message" => "DB-Error: " . $e->getMessage()];
         }
-        return ["success" => false, "message" => "Fehler beim Speichern."];
+        return ["success" => false, "message" => "Error saving."];
     }
 
     public function loginUser($data) {
@@ -81,11 +81,11 @@ class UserDataHandler {
 
             return [
                 "success" => true,
-                "message" => "Willkommen zurück, " . $user['firstname'] . "!",
+                "message" => "Welcome back, " . $user['username'] . "!",
                 "user" => ["id" => $user['user_id'], "role" => $user['role']]
             ];
         }
-        return ["success" => false, "message" => "E-Mail/Username oder Passwort falsch."];
+        return ["success" => false, "message" => "Incorrect email address/username or password."];
     }
 
     // (Die Funktionen checkAdminSession, logoutUser, checkSession, saveCartToDb und loadCartFromDb bleiben unverändert wie in deinem Ausgangs-File)
@@ -99,7 +99,7 @@ class UserDataHandler {
         if (session_status() == PHP_SESSION_NONE) { session_start(); }
         if (isset($_SESSION['user_id']) && isset($_SESSION['cart'])) { $this->saveCartToDb($_SESSION['user_id'], $_SESSION['cart']); }
         $_SESSION = []; session_destroy();
-        return ["success" => true, "message" => "Logout erfolgreich!"];
+        return ["success" => true, "message" => "Logout sucessful!"];
     }
 
     public function checkSession() {
@@ -183,8 +183,8 @@ class UserDataHandler {
             // Wenn Methode Kreditkarte bleibt und das Feld leer übermittelt wurde, behalten wir die alte Nummer bei.
             $finalPaymentDetails = $userData['paymentDetails'] ?? null;
 
-            if ($userData['paymentMethod'] === "Kreditkarte" && empty(trim($userData['paymentDetails']))) {
-                if ($currentUser['payment_method'] === "Kreditkarte") {
+            if ($userData['paymentMethod'] === "creditcard" && empty(trim($userData['paymentDetails']))) {
+                if ($currentUser['payment_method'] === "creditcard") {
                     $finalPaymentDetails = $currentUser['payment_details']; // Alte Karte retten
                 }
             }

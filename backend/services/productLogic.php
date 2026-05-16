@@ -26,7 +26,7 @@ class ProductLogic {
                 return $this->dh->searchProducts($data["query"] ?? "");
 
             default:
-                return ["success" => false, "message" => "Methode nicht erlaubt"];
+                return ["success" => false, "message" => "Method not allowed"];
         }
     }
 }

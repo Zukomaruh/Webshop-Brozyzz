@@ -37,7 +37,7 @@ $(document).ready(function () {
         $("#paymentMethod").val(user.payment_method);
 
         // NEU: Kreditkartennummer für die reine Ansicht zensieren
-        if (user.payment_method === "Kreditkarte" && user.payment_details) {
+        if (user.payment_method === "creditcard" && user.payment_details) {
             let maskedCard = maskCreditCard(user.payment_details);
             $("#paymentDetails").val(maskedCard);
         } else {
@@ -59,9 +59,9 @@ $(document).ready(function () {
     $("#btnToggleEdit").click(function () {
         $("#profileForm").find('input, select').prop('disabled', false);
 
-        // NEU: Im Edit-Modus leeren wir das Kreditkartenfeld.
+        // Im Edit-Modus leeren wir das Kreditkartenfeld.
         // Wenn der User es leer lässt, behalten wir im Backend die alte Karte bei.
-        if ($("#paymentMethod").val() === "Kreditkarte") {
+        if ($("#paymentMethod").val() === "creditcard") {
             $("#paymentDetails").val('').attr("placeholder", "Enter new card number or leave empty to keep current");
             $("#paymentDetails").prop('required', false); // Nicht zwingend required, da leer = behalten
         }
@@ -82,13 +82,13 @@ $(document).ready(function () {
     $("#paymentMethod").change(function () {
         toggleCreditCardDisplay($(this).val());
         // Falls im Edit-Modus auf Kreditkarte gewechselt wird, Placeholder setzen
-        if ($(this).val() === "Kreditkarte" && !$(this).is(':disabled')) {
+        if ($(this).val() === "creditcard" && !$(this).is(':disabled')) {
             $("#paymentDetails").attr("placeholder", "Enter card number").prop('required', true);
         }
     });
 
     function toggleCreditCardDisplay(method) {
-        if (method === "Kreditkarte") {
+        if (method === "creditcard") {
             $("#cardGroup").show();
         } else {
             $("#cardGroup").hide().find('input').prop('required', false).val('');

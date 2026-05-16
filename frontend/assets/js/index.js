@@ -33,11 +33,11 @@ $(document).ready(function () {
                     window.refreshCartBadge();
                 }
 
-                console.log("Produkt wurde zum Warenkorb hinzugefügt.");
+                console.log("Products were added to the basket.");
             },
 
             error: function (xhr) {
-                console.error("Fehler beim Hinzufügen zum Warenkorb:", xhr.responseText);
+                console.error("Error when adding to basket:", xhr.responseText);
             }
         });
     });
@@ -93,8 +93,8 @@ $(document).ready(function () {
 
                 // Falls keine Kategorien vorhanden sind
                 if (!categories || categories.length === 0) {
-                    categoryContainer.html('<div class="list-group-item">Keine Kategorien vorhanden.</div>');
-                    $("#productContainer").html('<div class="col-12 text-center">Noch keine Produkte vorhanden.</div>');
+                    categoryContainer.html('<div class="list-group-item">No Categories existing yet.</div>');
+                    $("#productContainer").html('<div class="col-12 text-center">No Products existing yet.</div>');
                     return;
                 }
 
@@ -103,7 +103,7 @@ $(document).ready(function () {
                     <button type="button"
                             class="list-group-item list-group-item-action category-btn active"
                             data-category="all">
-                        Alle Kategorien
+                        All Categories
                     </button>
                 `;
 
@@ -127,8 +127,8 @@ $(document).ready(function () {
             },
 
             error: function (xhr) {
-                console.error("Fehler beim Laden der Kategorien:", xhr.responseText);
-                $("#categoryContainer").html('<div class="list-group-item text-danger">Fehler beim Laden der Kategorien.</div>');
+                console.error("Error when loading categories:", xhr.responseText);
+                $("#categoryContainer").html('<div class="list-group-item text-danger">Error when loading categories.</div>');
             }
         });
     }
@@ -155,19 +155,19 @@ $(document).ready(function () {
             dataType: "json",
 
             success: function (products) {
-                console.log("Geladene Produkte:", products);
+                console.log("Loaded products:", products);
                 renderProducts(products);
             },
 
             error: function (xhr) {
-                console.error("Fehler beim Laden der Produkte:", xhr.responseText);
-                $("#productContainer").html('<div class="alert alert-danger w-100">Fehler beim Laden der Produkte.</div>');
+                console.error("Error when loading products:", xhr.responseText);
+                $("#productContainer").html('<div class="alert alert-danger w-100">Error when loading products.</div>');
             }
         });
     }
 
     // Zeigt die geladenen Produkte als Cards an
-    function renderProducts(products, emptyMessage = "Keine Produkte in dieser Kategorie vorhanden.") {
+    function renderProducts(products, emptyMessage = "No products in this category.") {
         let container = $("#productContainer");
         container.empty();
 
@@ -190,7 +190,7 @@ $(document).ready(function () {
             let ratingHtml = "";
 
             if (product.rating) {
-                ratingHtml = `<p class="card-text">Bewertung: ${escapeHtml(product.rating)} / 5</p>`;
+                ratingHtml = `<p class="card-text">Rating: ${escapeHtml(product.rating)} / 5</p>`;
             }
 
             let price = Number(product.price).toFixed(2);
@@ -209,7 +209,7 @@ $(document).ready(function () {
 
                             <p class="card-text">
                                 <small class="text-muted">
-                                    Kategorie: ${escapeHtml(product.category)}
+                                    Category: ${escapeHtml(product.category)}
                                 </small>
                             </p>
 
@@ -221,7 +221,7 @@ $(document).ready(function () {
 
                             <button class="btn btn-outline-primary w-100 btn-add-cart"
                                     data-id="${product.product_id}">
-                                In den Warenkorb
+                                Add to basket
                             </button>
                         </div>
                     </div>

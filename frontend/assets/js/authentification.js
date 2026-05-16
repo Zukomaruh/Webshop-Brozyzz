@@ -1,7 +1,7 @@
 $(document).ready(function () {
     // Dynamische Anzeige der Kreditkarten-Felder bei der Registrierung
         $("#paymentMethod").change(function () {
-            if ($(this).val() === "Kreditkarte") {
+            if ($(this).val() === "creditcard") {
                 $("#cardDetailsGroup").show().find('input').prop('required', true);
             } else {
                 $("#cardDetailsGroup").hide().find('input').prop('required', false).val('');
@@ -44,6 +44,9 @@ $(document).ready(function () {
                     $("#registerMessage").text(response.message).css("color", "green");
                     $("#registerForm")[0].reset();
                     $("#cardDetailsGroup").hide();
+                    setTimeout(() => {
+                        window.location.href = "../index.html";
+                    }, 1000);
                 } else {
                     $("#registerMessage").text(response.message).css("color", "red");
                 }

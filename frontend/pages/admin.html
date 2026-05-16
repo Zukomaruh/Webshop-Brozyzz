@@ -13,32 +13,32 @@
 </div>
 
 <div id="addProductView" class="container mt-2" style="display:none;">
-    <div class="alert alert-info">Hier kannst du neue Produkte anlegen.</div>
+    <div class="alert alert-info">Here you can create new products.</div>
     <div class="card shadow-sm">
         <div class="card-body">
-            <h3 class="mb-4">Neues Produkt</h3>
+            <h3 class="mb-4">New Product</h3>
 
             <form id="createProductForm" enctype="multipart/form-data">
                 <div class="mb-3">
-                    <label for="productName" class="form-label">Produktname</label>
+                    <label for="productName" class="form-label">Product name</label>
                     <input type="text" class="form-control" id="productName" name="name" required>
                 </div>
 
                 <div class="mb-3">
-                    <label for="productDescription" class="form-label">Beschreibung</label>
+                    <label for="productDescription" class="form-label">Description</label>
                     <textarea class="form-control" id="productDescription" name="description" rows="4" required></textarea>
                 </div>
 
                 <div class="mb-3">
-                    <label for="productPrice" class="form-label">Preis</label>
+                    <label for="productPrice" class="form-label">Price</label>
                     <input type="number" class="form-control" id="productPrice" name="price" step="0.01" min="0" required>
                 </div>
 
                 <!-- Dropdown Menü mit provisorischen Kategorien, würde auch mit Texteingabefeld gehen... -->
                 <div class="mb-3">
-                    <label for="productCategory" class="form-label">Kategorie</label>
+                    <label for="productCategory" class="form-label">Category</label>
                     <select class="form-control" id="productCategory" name="category" required>
-                        <option value="">Bitte wählen</option>
+                        <option value="">Please Choose</option>
                         <option value="Supplements">Supplements</option>
                         <option value="Clothing">Clothing</option>
                         <option value="Equipment">Equipment</option>
@@ -47,16 +47,16 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="productRating" class="form-label">Bewertung (1-5)</label>
+                    <label for="productRating" class="form-label">Rating (1-5)</label>
                     <input type="number" class="form-control" id="productRating" name="rating" min="1" max="5" required>
                 </div>
 
                 <div class="mb-3">
-                    <label for="productImage" class="form-label">Produktbild</label>
+                    <label for="productImage" class="form-label">Product image</label>
                     <input type="file" class="form-control" id="productImage" name="image" accept=".jpg,.jpeg,.png,.webp" required>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">Produkt anlegen</button>
+                <button type="submit" class="btn btn-primary w-100">Create Product</button>
             </form>
 
             <div id="productMessage" class="mt-3 text-center"></div>

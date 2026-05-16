@@ -14,7 +14,7 @@ $(document).ready(function () {
                 foot.empty();
 
                 if (items.length === 0) {
-                    body.append('<tr><td colspan="5" class="text-center">Dein Warenkorb ist leer.</td></tr>');
+                    body.append('<tr><td colspan="5" class="text-center">Your basket is empty.</td></tr>');
                     return;
                 }
 
@@ -49,7 +49,7 @@ $(document).ready(function () {
                 // Gesamtsumme anzeigen
                 foot.append(`
                     <tr class="table-dark">
-                        <td colspan="3" class="text-end fw-bold">Gesamtsumme:</td>
+                        <td colspan="3" class="text-end fw-bold">Total:</td>
                         <td colspan="2" class="fw-bold">${totalCartSum.toFixed(2)} €</td>
                     </tr>
                 `);
