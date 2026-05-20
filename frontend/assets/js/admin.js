@@ -45,7 +45,7 @@ $(document).ready(function () {
             },
             error: function (xhr) {
                 console.error(xhr.responseText);
-                $("#productMessage").text("Server-Fehler beim Speichern.").css("color", "red");
+                $("#productMessage").text("Server-Error when saving.").css("color", "red");
             }
         });
     });

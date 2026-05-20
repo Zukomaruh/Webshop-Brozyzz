@@ -20,8 +20,12 @@ class UserLogic {
                 return $this->userDataHandler->logoutUser();
             case "checkSession":
                 return $this->userDataHandler->checkSession();
+            case "getUserProfile":
+                return $this->userDataHandler->getUserProfile();
+            case "updateUserProfile":
+                return $this->userDataHandler->updateUserProfile($data);
             default:
-                return ["success" => false, "message" => "Methode nicht erlaubt"];
+                return ["success" => false, "message" => "Method not allowed"];
         }
     }
 }

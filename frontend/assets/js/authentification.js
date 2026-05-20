@@ -1,15 +1,22 @@
 $(document).ready(function () {
+    // Dynamische Anzeige der Kreditkarten-Felder bei der Registrierung
+        $("#paymentMethod").change(function () {
+            if ($(this).val() === "creditcard") {
+                $("#cardDetailsGroup").show().find('input').prop('required', true);
+            } else {
+                $("#cardDetailsGroup").hide().find('input').prop('required', false).val('');
+            }
+        });
+
+    // REGISTRIERUNG
     $("#registerForm").submit(function (e) {
         e.preventDefault();
 
-        let firstName = $("#firstName").val();
-        let lastName = $("#lastName").val();
-        let email = $("#registerEmail").val();
         let password = $("#registerPassword").val();
         let confirmPassword = $("#confirmPassword").val();
 
         if (password !== confirmPassword) {
-            $("#registerMessage").text("Passwords do not match").css("color", "red");
+            $("#registerMessage").text("Passwörter stimmen nicht übereinstimmen!").css("color", "red");
             return;
         }
 
@@ -19,9 +26,16 @@ $(document).ready(function () {
             cache: false,
             data: {
                 method: "registerUser",
-                firstName: firstName,
-                lastName: lastName,
-                email: email,
+                gender: $("#gender").val(),
+                firstName: $("#firstName").val(),
+                lastName: $("#lastName").val(),
+                username: $("#username").val(),
+                email: $("#registerEmail").val(),
+                address: $("#address").val(),
+                zip: $("#zip").val(),
+                city: $("#city").val(),
+                paymentMethod: $("#paymentMethod").val(),
+                paymentDetails: $("#paymentDetails").val(),
                 password: password
             },
             dataType: "json",
@@ -29,23 +43,23 @@ $(document).ready(function () {
                 if (response.success) {
                     $("#registerMessage").text(response.message).css("color", "green");
                     $("#registerForm")[0].reset();
+                    $("#cardDetailsGroup").hide();
+                    setTimeout(() => {
+                        window.location.href = "../index.html";
+                    }, 1000);
                 } else {
                     $("#registerMessage").text(response.message).css("color", "red");
                 }
             },
-            error: function (xhr) {
-                console.error(xhr.responseText);
+            error: function () {
                 $("#registerMessage").text("Server-Fehler aufgetreten.").css("color", "red");
             }
         });
     });
 
-    // LOGIN
+    // LOGIN (Nutzt jetzt den flexiblen Identifier für Email/Username)
     $("#loginForm").submit(function (e) {
         e.preventDefault();
-
-        let email = $("#loginEmail").val();
-        let password = $("#loginPassword").val();
 
         $.ajax({
             type: "POST",
@@ -53,17 +67,14 @@ $(document).ready(function () {
             cache: false,
             data: {
                 method: "loginUser",
-                email: email,
-                password: password
+                identifier: $("#loginIdentifier").val(), // Kann Email oder Username sein
+                password: $("#loginPassword").val()
             },
             dataType: "json",
-            // Im Login-AJAX unter success:
             success: function (response) {
                 if (response.success) {
                     $("#loginMessage").text(response.message).css("color", "green");
-
                     setTimeout(() => {
-                        // Rollenprüfung für die Weiterleitung
                         if (response.user.role === 'admin') {
                             window.location.href = "admin.html";
                         } else {
