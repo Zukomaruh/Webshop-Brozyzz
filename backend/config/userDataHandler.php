@@ -51,6 +51,34 @@ class UserDataHandler {
         return ["success" => false, "message" => "Error saving."];
     }
 
+    //User Session Start mit Warenkorb-Synchronisation in eigene Funktion ausgelagert für remember_login
+    private function startUserSession($user) {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $_SESSION['user_id'] = $user['user_id'];
+        $_SESSION['role'] = $user['role'];
+        $_SESSION['firstname'] = $user['firstname'];
+
+        // Warenkorb-Synchronisation
+        $dbCart = $this->loadCartFromDb($user['user_id']);
+
+        if (!isset($_SESSION['cart'])) {
+            $_SESSION['cart'] = [];
+        }
+
+        foreach ($dbCart as $pid => $qty) {
+            if (isset($_SESSION['cart'][$pid])) {
+                $_SESSION['cart'][$pid] += $qty;
+            } else {
+                $_SESSION['cart'][$pid] = $qty;
+            }
+        }
+
+        $this->saveCartToDb($user['user_id'], $_SESSION['cart']);
+    }
+
     public function loginUser($data) {
         // SQL-Query sucht nun nach Email ODER Username
         $sql = "SELECT * FROM users WHERE email = :identifier OR username = :identifier";
@@ -59,25 +87,11 @@ class UserDataHandler {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($data['password'], $user['password'])) {
-            if (session_status() == PHP_SESSION_NONE) { session_start(); }
+            $this->startUserSession($user);
 
-            $_SESSION['user_id'] = $user['user_id'];
-            $_SESSION['role'] = $user['role'];
-            $_SESSION['firstname'] = $user['firstname'];
-
-            // Warenkorb-Synchronisation
-            $dbCart = $this->loadCartFromDb($user['user_id']);
-            if (!isset($_SESSION['cart'])) { $_SESSION['cart'] = []; }
-
-            foreach ($dbCart as $pid => $qty) {
-                if (isset($_SESSION['cart'][$pid])) {
-                    $_SESSION['cart'][$pid] += $qty;
-                } else {
-                    $_SESSION['cart'][$pid] = $qty;
-                }
-            }
-
-            $this->saveCartToDb($user['user_id'], $_SESSION['cart']);
+        if (isset($data['rememberMe']) && $data['rememberMe'] == "1") {
+            $this->createRememberToken($user['user_id']);
+        }
 
             return [
                 "success" => true,
@@ -91,6 +105,9 @@ class UserDataHandler {
     // (Die Funktionen checkAdminSession, logoutUser, checkSession, saveCartToDb und loadCartFromDb bleiben unverändert wie in deinem Ausgangs-File)
     public function checkAdminSession() {
         if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+        $this->checkRememberLogin();
+
         if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') { return ["isAdmin" => true]; }
         return ["isAdmin" => false];
     }
@@ -98,12 +115,16 @@ class UserDataHandler {
     public function logoutUser() {
         if (session_status() == PHP_SESSION_NONE) { session_start(); }
         if (isset($_SESSION['user_id']) && isset($_SESSION['cart'])) { $this->saveCartToDb($_SESSION['user_id'], $_SESSION['cart']); }
+        $this->clearRememberToken();
         $_SESSION = []; session_destroy();
-        return ["success" => true, "message" => "Logout sucessful!"];
+        return ["success" => true, "message" => "Logout successful!"];
     }
 
     public function checkSession() {
         if(session_status() == PHP_SESSION_NONE){ session_start(); }
+
+        $this->checkRememberLogin();
+
         if(isset($_SESSION['user_id'])){ return ["loggedIn" => true, "role" => $_SESSION['role'],"firstname" => $_SESSION['firstname']]; }
         return ["loggedIn" => false];
     }
@@ -128,6 +149,8 @@ class UserDataHandler {
 
     public function getUserProfile() {
         if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+        $this->checkRememberLogin();
 
         // Sicherheitscheck: Ist überhaupt jemand eingeloggt?
         if (!isset($_SESSION['user_id'])) {
@@ -242,5 +265,95 @@ class UserDataHandler {
         }
 
         return ["success" => false, "message" => "Failed to update profile."];
+    }
+
+    private function createRememberToken($userId) {
+        // Alten Token für diesen User löschen, damit pro User nur ein aktiver Remember-Login existiert
+        $deleteSql = "DELETE FROM remember_tokens WHERE user_id = :uid";
+        $deleteStmt = $this->db->prepare($deleteSql);
+        $deleteStmt->execute([':uid' => $userId]);
+
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = hash("sha256", $token);
+
+        $expiresTimestamp = time() + (30 * 24 * 60 * 60);
+        $expiresAt = date("Y-m-d H:i:s", $expiresTimestamp);
+
+        $sql = "INSERT INTO remember_tokens (user_id, token_hash, expires_at)
+                VALUES (:uid, :token_hash, :expires_at)";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':uid' => $userId,
+            ':token_hash' => $tokenHash,
+            ':expires_at' => $expiresAt
+        ]);
+
+        setcookie("remember_login", $token, [
+            "expires" => $expiresTimestamp,
+            "path" => "/",
+            "httponly" => true,
+            "samesite" => "Lax",
+            "secure" => !empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off"
+        ]);
+    }
+
+    public function checkRememberLogin() {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (isset($_SESSION['user_id'])) {
+            return true;
+        }
+
+        if (!isset($_COOKIE['remember_login'])) {
+            return false;
+        }
+
+        $token = $_COOKIE['remember_login'];
+        $tokenHash = hash("sha256", $token);
+
+        try {
+            $sql = "SELECT users.*
+                    FROM remember_tokens
+                    JOIN users ON remember_tokens.user_id = users.user_id
+                    WHERE remember_tokens.token_hash = :token_hash
+                    AND remember_tokens.expires_at > NOW()
+                    LIMIT 1";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':token_hash' => $tokenHash]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                $this->startUserSession($user);
+                return true;
+            }
+
+            $this->clearRememberToken();
+            return false;
+
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    private function clearRememberToken() {
+        if (isset($_COOKIE['remember_login'])) {
+            $tokenHash = hash("sha256", $_COOKIE['remember_login']);
+
+            $sql = "DELETE FROM remember_tokens WHERE token_hash = :token_hash";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':token_hash' => $tokenHash]);
+        }
+
+        setcookie("remember_login", "", [
+            "expires" => time() - 3600,
+            "path" => "/",
+            "httponly" => true,
+            "samesite" => "Lax",
+            "secure" => !empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off"
+        ]);
     }
 }

@@ -68,7 +68,8 @@ $(document).ready(function () {
             data: {
                 method: "loginUser",
                 identifier: $("#loginIdentifier").val(), // Kann Email oder Username sein
-                password: $("#loginPassword").val()
+                password: $("#loginPassword").val(),
+                rememberMe: $("#rememberMe").is(":checked") ? "1" : "0"
             },
             dataType: "json",
             success: function (response) {
