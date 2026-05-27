@@ -1,0 +1,49 @@
+<?php
+require_once "dbaccess.php";
+
+class OrderDataHandler {
+    private $db;
+
+    public function __construct() {
+        $dba = new DBAccess();
+        $this->db = $dba->getConnection();
+    }
+
+    public function createOrder($userId, $subtotal, $taxAmount, $total, $couponCode, $discountAmount, $shippingAddress) {
+        $stmt = $this->db->prepare("
+            INSERT INTO orders 
+                (user_id, status, subtotal, tax_amount, total, coupon_code, discount_amount, shipping_address)
+            VALUES 
+                (:user_id, 'pending', :subtotal, :tax_amount, :total, :coupon_code, :discount_amount, :shipping_address)
+        ");
+        $stmt->execute([
+            ':user_id'          => $userId,
+            ':subtotal'         => $subtotal,
+            ':tax_amount'       => $taxAmount,
+            ':total'            => $total,
+            ':coupon_code'      => $couponCode,
+            ':discount_amount'  => $discountAmount,
+            ':shipping_address' => $shippingAddress
+        ]);
+        return $this->db->lastInsertId();
+    }
+
+    public function createOrderItems($orderId, $items) {
+        $stmt = $this->db->prepare("
+            INSERT INTO order_items 
+                (order_id, product_id, product_name, quantity, unit_price, total)
+            VALUES 
+                (:order_id, :product_id, :product_name, :quantity, :unit_price, :total)
+        ");
+        foreach ($items as $item) {
+            $stmt->execute([
+                ':order_id'     => $orderId,
+                ':product_id'   => $item['product_id'],
+                ':product_name' => $item['product_name'],
+                ':quantity'     => $item['quantity'],
+                ':unit_price'   => $item['unit_price'],
+                ':total'        => $item['total']
+            ]);
+        }
+    }
+}

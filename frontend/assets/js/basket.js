@@ -92,4 +92,42 @@ $(document).ready(function () {
             });
         }
     });
+    $("#btnCheckout").on("click", function () {
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/orderServiceHandler.php",
+            data: { method: "placeOrder" },
+            dataType: "json",
+            success: function (res) {
+                console.log(res);
+                if (res.error === "not_logged_in") {
+                    $("#checkoutMsg").html(`
+                    <div class="alert alert-warning">Please log in to place an order.</div>
+                `);
+                } else if (res.error === "cart_empty") {
+                    $("#checkoutMsg").html(`
+                    <div class="alert alert-warning">Your basket is empty.</div>
+                `);
+                } else if (res.error === "missing_user_data") {
+                    let fields = res.missing.join(", ");
+                    $("#checkoutMsg").html(`
+                    <div class="alert alert-warning">
+                       Please complete your profile first. Missing: <strong>${fields}</strong>
+                        <br><a href="profile.html" class="btn btn-sm btn-outline-dark mt-2">Go to Profile</a>
+                    </div>
+                `);
+                } else if (res.success) {
+                    loadBasket();
+                    if (typeof window.refreshCartBadge === "function") {
+                        window.refreshCartBadge();
+                    }
+
+                    //Bestätigung anzeigen
+                    $("#checkoutMsg").html(`
+                        <div class="alert alert-success">Order placed successfully! Order ID: ${res.order_id} | Total: ${res.total} €</div>
+                    `);
+                }
+            }
+        });
+    });
 });

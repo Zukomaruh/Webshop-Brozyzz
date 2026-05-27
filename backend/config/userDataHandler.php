@@ -147,6 +147,11 @@ class UserDataHandler {
         return $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
 
+    public function clearCart($userId) {
+        $stmt = $this->db->prepare("DELETE FROM shopping_cart WHERE user_id = :uid");
+        $stmt->execute([':uid' => $userId]);
+    }
+
     public function getUserProfile() {
         if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
@@ -175,6 +180,15 @@ class UserDataHandler {
         }
 
         return ["success" => false, "message" => "User profile not found."];
+    }
+
+    public function getUserById($userId){
+        $stmt = $this->db->prepare("
+        SELECT firstname, lastname, email, address, zip, city, payment_method, payment_details
+        FROM users WHERE user_id = :uid
+    ");
+        $stmt->execute([':uid' => $userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function updateUserProfile($userData) {
