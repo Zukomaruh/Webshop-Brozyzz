@@ -46,4 +46,23 @@ class OrderDataHandler {
             ]);
         }
     }
+
+    public function getOrdersByUserId($userId) {
+        $stmt = $this->db->prepare("
+            SELECT
+                id,
+                status,
+                total,
+                created_at
+            FROM orders
+            WHERE user_id = :user_id
+            ORDER BY created_at DESC
+        ");
+
+        $stmt->execute([
+            ':user_id' => $userId
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
