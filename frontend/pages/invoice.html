@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="../components/header.js"></script>
+    <title>Invoice</title>
+    <style>
+        @media print {
+            #btnPrint { display: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-5" id="invoiceWrapper">
+    <!--Header-->
+    <div class="d-flex justify-content-between mb-5">
+        <div>
+            <h2>Brozyzz Shop</h2>
+            <p class="text-muted">
+                Musterstraße 1<br>
+                1010 Vienna<br>
+                office@brozyzz.at<br>
+                UID: ATU12345678
+            </p>
+        </div>
+        <div class="text-end">
+            <h1 class="text-primary">INVOICE</h1>
+            <p id="invoiceNumber" class="fw-bold"></p>
+            <p id="invoiceDate" class="text-muted"></p>
+            <p id="deliveryDate" class="text-muted"></p>
+        </div>
+    </div>
+
+    <!--Kundenadresse-->
+    <div class="mb-5">
+        <h5 class="text-secondary">Bill to:</h5>
+        <p id="customerInfo"></p>
+    </div>
+
+    <!--Produkte-->
+    <table class="table table-bordered">
+        <thead class="table-dark">
+        <tr>
+            <th>Product</th>
+            <th class="text-center">Quantity</th>
+            <th class="text-end">Unit Price</th>
+            <th class="text-end">Total</th>
+        </tr>
+        </thead>
+        <tbody id="invoiceItems"></tbody>
+        <tfoot id="invoiceSummary"></tfoot>
+    </table>
+
+    <!-- Print Button -->
+    <div class="text-end mt-4">
+        <button id="btnPrint" class="btn btn-primary" onclick="window.print()">
+            Print Invoice
+        </button>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="../assets/js/invoice.js"></script>
+<script src="../assets/js/authGuard.js"></script>
+<script> requireLogin(); </script>
+</body>
+</html>

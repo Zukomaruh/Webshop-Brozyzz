@@ -23,6 +23,8 @@ class OrderLogic
                 return $this->placeOrder($data);
             case "getOrders":
                 return $this->getOrders();
+            case "getOrderById":
+                return $this->getOrderById($data);
             default:
                 return ["error" => "Unknown method"];
         }
@@ -138,5 +140,23 @@ class OrderLogic
             "success" => true,
             "orders" => $orders
         ];
+    }
+
+    private function getOrderById($data){
+        //Logged in?
+        if (!isset($_SESSION['user_id'])) {
+            return ["error" => "not_logged_in", "debug" => $_SESSION];
+        }
+        //get ID
+        $orderId = $data['order_id'] ?? null;
+        if (!$orderId) {
+            return ["error" => "missing_order_id"];
+        }
+        //get Order Details & return
+        $result = $this->orderDataHandler->getOrderById($orderId);
+        if (!$result['order'] || $result['order']['user_id'] !== $_SESSION['user_id']) {
+            return ["error" => "unauthorized"];
+        }
+        return ["success" => true, "data" => $result];
     }
 }

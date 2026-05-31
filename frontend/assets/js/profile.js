@@ -315,9 +315,8 @@ $(document).ready(function () {
                             View Details
                         </button>
 
-                        <button class="btn btn-outline-secondary btn-sm"
-                                data-order-id="${order.id}"
-                                disabled>
+                        <button class="btn btn-outline-secondary btn-sm btn-print-invoice"
+                                data-order-id="${order.id}">
                             Print Invoice
                         </button>
                     </div>
@@ -391,5 +390,8 @@ $(document).ready(function () {
                 };
         }
     }
-
+    $(document).on("click", ".btn-print-invoice", function () {
+        let orderId = $(this).data("order-id");
+        window.open("invoice.html?order_id=" + orderId, "_blank");
+    });
 });
