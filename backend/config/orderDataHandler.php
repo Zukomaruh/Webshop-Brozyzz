@@ -68,7 +68,7 @@ class OrderDataHandler {
 
     public function getOrderById($order_id){
         //get Order Details
-        $order = $this->db->prepare("SELECT * FROM orders WHERE id = :order_id");
+        $order = $this->db->prepare("SELECT orders.*, users.firstname, users.lastname, users.gender FROM orders JOIN users ON orders.user_id = users.user_id WHERE orders.id = :order_id");
         $order->execute([':order_id' => $order_id]);
         $order = $order->fetch(PDO::FETCH_ASSOC);
         //get products

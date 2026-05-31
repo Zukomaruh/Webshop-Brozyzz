@@ -25,10 +25,22 @@ $(document).ready(function() {
             // Rechnungsnummer und Datum
             $("#invoiceNumber").text("Invoice #INV-" + order.id);
             $("#invoiceDate").text("Date: " + formatDate(order.created_at));
+            $("#deliveryDate").text("Delivery date: " + formatDate(order.created_at));
 
             // Kundeninfo aus shipping_address
             let address = JSON.parse(order.shipping_address);
+
+            let salutation = "";
+
+            if (order.gender === "mr") {
+                salutation = "Mr.";
+            } else if (order.gender === "ms") {
+                salutation = "Ms.";
+            }
+
+
             $("#customerInfo").html(`
+                ${salutation} ${order.firstname} ${order.lastname}<br>
                 ${address.address}<br>
                 ${address.zip} ${address.city}
             `);
@@ -48,11 +60,11 @@ $(document).ready(function() {
             // 6. Summen
             $("#invoiceSummary").html(`
                 <tr>
-                    <td colspan="3" class="text-end">Subtotal:</td>
+                    <td colspan="3" class="text-end">Subtotal incl. VAT:</td>
                     <td class="text-end">${parseFloat(order.subtotal).toFixed(2)} €</td>
                 </tr>
                 <tr>
-                    <td colspan="3" class="text-end">Including VAT (20%):</td>
+                    <td colspan="3" class="text-end">Included VAT (20%):</td>
                     <td class="text-end">${parseFloat(order.tax_amount).toFixed(2)} €</td>
                 </tr>
                 <tr class="table-dark fw-bold">
