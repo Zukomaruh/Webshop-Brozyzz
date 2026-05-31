@@ -21,6 +21,8 @@ class OrderLogic
         switch ($method) {
             case "placeOrder":
                 return $this->placeOrder($data);
+            case "getOrders":
+                return $this->getOrders();
             default:
                 return ["error" => "Unknown method"];
         }
@@ -121,5 +123,20 @@ class OrderLogic
             error_log("Order error: " . $e->getMessage());
             return ["error" => "db_error"];
         }
+    }
+
+    private function getOrders() {
+        if (!isset($_SESSION['user_id'])) {
+            return ["error" => "not_logged_in"];
+        }
+
+        $userId = $_SESSION['user_id'];
+
+        $orders = $this->orderDataHandler->getOrdersByUserId($userId);
+
+        return [
+            "success" => true,
+            "orders" => $orders
+        ];
     }
 }
