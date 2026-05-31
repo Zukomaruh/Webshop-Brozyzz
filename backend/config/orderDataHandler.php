@@ -65,4 +65,19 @@ class OrderDataHandler {
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getOrderById($order_id){
+        //get Order Details
+        $order = $this->db->prepare("SELECT * FROM orders WHERE id = :order_id");
+        $order->execute([':order_id' => $order_id]);
+        $order = $order->fetch(PDO::FETCH_ASSOC);
+        //get products
+        $items = $this->db->prepare("SELECT * FROM order_items WHERE order_id = :order_id");
+        $items->execute([':order_id' => $order_id]);
+        $items = $items->fetchAll(PDO::FETCH_ASSOC);
+        return [
+            'order' => $order,
+            'items' => $items
+        ];
+    }
 }
