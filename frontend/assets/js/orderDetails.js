@@ -1,0 +1,202 @@
+$(document).ready(function () {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get("order_id");
+
+    if (!orderId) {
+        showOrderMessage("No order selected.", "warning");
+        return;
+    }
+
+    loadOrderDetails(orderId);
+
+    $("#btnPrintInvoice").click(function () {
+        window.open("invoice.html?order_id=" + orderId, "_blank");
+    });
+});
+
+function loadOrderDetails(orderId) {
+    $.ajax({
+        type: "GET",
+        url: "../../backend/services/orderServiceHandler.php",
+        cache: false,
+        data: {
+            method: "getOrderById",
+            order_id: orderId
+        },
+        dataType: "json",
+
+        success: function (response) {
+            console.log(response);
+
+            if (response.error === "not_logged_in") {
+                showOrderMessage("Please log in to view this order.", "warning");
+                return;
+            }
+
+            if (response.error === "unauthorized") {
+                showOrderMessage("You are not allowed to view this order.", "danger");
+                return;
+            }
+
+            if (response.error === "missing_order_id") {
+                showOrderMessage("No order selected.", "warning");
+                return;
+            }
+
+            if (response.success) {
+                displayOrderDetails(response.data);
+            } else {
+                showOrderMessage("Order details could not be loaded.", "danger");
+            }
+        },
+
+        error: function (xhr) {
+            console.error("Order detail loading error:", xhr.responseText);
+            showOrderMessage("Error connecting to the server.", "danger");
+        }
+    });
+}
+
+function displayOrderDetails(data) {
+    const order = data.order;
+    const items = data.items;
+
+    $("#orderDetailMessage").empty();
+    $("#orderDetailWrapper").removeClass("d-none");
+
+    $("#orderId").text("#" + order.id);
+    $("#orderDate").text(formatOrderDate(order.created_at));
+    $("#orderStatus").html(getStatusBadge(order.status));
+    $("#customerName").text(order.firstname + " " + order.lastname);
+
+    let tableBody = $("#orderItemsTableBody");
+    tableBody.empty();
+
+    if (!items || items.length === 0) {
+        tableBody.html(`
+            <tr>
+                <td colspan="4" class="text-center">
+                    No items found for this order.
+                </td>
+            </tr>
+        `);
+    } else {
+        items.forEach(function (item) {
+            let unitPrice = parseFloat(item.unit_price).toFixed(2);
+            let total = parseFloat(item.total).toFixed(2);
+
+            let row = `
+                <tr>
+                    <td>${escapeHtml(item.product_name)}</td>
+                    <td>${item.quantity}</td>
+                    <td>${unitPrice} €</td>
+                    <td>${total} €</td>
+                </tr>
+            `;
+
+            tableBody.append(row);
+        });
+    }
+
+    $("#orderSubtotal").text(parseFloat(order.subtotal).toFixed(2) + " €");
+    $("#orderTax").text(parseFloat(order.tax_amount).toFixed(2) + " €");
+    $("#orderTotal").text(parseFloat(order.total).toFixed(2) + " €");
+}
+
+function showOrderMessage(message, type) {
+    $("#orderDetailWrapper").addClass("d-none");
+
+    $("#orderDetailMessage").html(`
+        <div class="alert alert-${type}">
+            ${message}
+        </div>
+    `);
+}
+
+function formatOrderDate(dateString) {
+    if (!dateString) {
+        return "-";
+    }
+
+    let datePart = dateString.substring(0, 10);
+    let parts = datePart.split("-");
+
+    if (parts.length !== 3) {
+        return dateString;
+    }
+
+    return parts[2] + "." + parts[1] + "." + parts[0];
+}
+
+function getStatusBadge(status) {
+    let statusInfo;
+
+    switch (status) {
+        case "pending":
+            statusInfo = {
+                text: "Pending",
+                badgeClass: "bg-warning"
+            };
+            break;
+
+        case "processing":
+            statusInfo = {
+                text: "Processing",
+                badgeClass: "bg-info"
+            };
+            break;
+
+        case "shipped":
+            statusInfo = {
+                text: "Shipped",
+                badgeClass: "bg-primary"
+            };
+            break;
+
+        case "delivered":
+            statusInfo = {
+                text: "Delivered",
+                badgeClass: "bg-success"
+            };
+            break;
+
+        case "cancelled":
+            statusInfo = {
+                text: "Cancelled",
+                badgeClass: "bg-danger"
+            };
+            break;
+
+        case "refunded":
+            statusInfo = {
+                text: "Refunded",
+                badgeClass: "bg-secondary"
+            };
+            break;
+
+        default:
+            statusInfo = {
+                text: status,
+                badgeClass: "bg-dark"
+            };
+    }
+
+    return `
+        <span class="badge ${statusInfo.badgeClass}">
+            ${statusInfo.text}
+        </span>
+    `;
+}
+
+function escapeHtml(text) {
+    if (!text) {
+        return "";
+    }
+
+    return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}

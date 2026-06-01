@@ -154,7 +154,7 @@ class OrderLogic
         }
         //get Order Details & return
         $result = $this->orderDataHandler->getOrderById($orderId);
-        if (!$result['order'] || $result['order']['user_id'] !== $_SESSION['user_id']) {
+        if (!$result['order'] || (int)$result['order']['user_id'] !== (int)$_SESSION['user_id']) {
             return ["error" => "unauthorized"];
         }
         return ["success" => true, "data" => $result];

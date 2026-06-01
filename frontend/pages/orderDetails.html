@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="../components/header.js"></script>
+    <title>Order Details</title>
+</head>
+<body>
+
+<div class="container mt-5">
+    <h2 class="mb-4">Order Details</h2>
+
+    <div id="orderDetailMessage"></div>
+
+    <div id="orderDetailWrapper" class="d-none">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Order Information</h5>
+
+                <p><strong>Order ID:</strong> <span id="orderId"></span></p>
+                <p><strong>Date:</strong> <span id="orderDate"></span></p>
+                <p><strong>Status:</strong> <span id="orderStatus"></span></p>
+                <p><strong>Customer:</strong> <span id="customerName"></span></p>
+            </div>
+        </div>
+
+        <h4>Purchased Items</h4>
+
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Unit price</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody id="orderItemsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="text-end">
+            <p><strong>Subtotal incl. VAT:</strong> <span id="orderSubtotal"></span></p>
+            <p><strong>Included VAT (20%):</strong> <span id="orderTax"></span></p>
+            <h4><strong>Total: </strong><span id="orderTotal"></span></h4>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <a href="profile.html?tab=orders" class="btn btn-secondary">Back to profile</a>
+            <button id="btnPrintInvoice" class="btn btn-outline-secondary">Print Invoice</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="../components/navbar.js"></script>
+<script src="../assets/js/authGuard.js"></script>
+<script src="../assets/js/orderDetails.js"></script>
+<script> requireLogin(); </script>
+
+</body>
+</html>
