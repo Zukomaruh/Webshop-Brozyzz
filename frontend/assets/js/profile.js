@@ -3,6 +3,15 @@ $(document).ready(function () {
 
     loadUserProfile();
 
+    const params = new URLSearchParams(window.location.search);
+    const activeTab = params.get("tab");
+
+    if (activeTab === "orders") {
+        resetProfileFormToSavedData()
+        showMyOrdersTab();
+        loadOrders();
+    }
+
     // Tab-Wechsel zwsichen Profildaten und Bestellungen
     $(document).on("click", "#tabPersonalInfo", function (e) {
         e.preventDefault();
@@ -11,7 +20,7 @@ $(document).ready(function () {
 
     $(document).on("click", "#tabMyOrders", function (e) {
         e.preventDefault();
-        switchToViewMode();
+        resetProfileFormToSavedData()
         showMyOrdersTab();
 
         loadOrders();
@@ -122,8 +131,7 @@ $(document).ready(function () {
     });
 
     $("#btnCancelEdit").click(function () {
-        switchToViewMode();
-        fillFormFields(currentProfileData);
+        resetProfileFormToSavedData();
     });
 
     $("#paymentMethod").change(function () {
@@ -159,6 +167,16 @@ $(document).ready(function () {
 
         $("#btnToggleEdit").removeClass("d-none");
     }
+
+    //Verhindert, dass nicht gespeicherte Daten in den Feldern bleiben
+    function resetProfileFormToSavedData() {
+        if (currentProfileData) {
+            fillFormFields(currentProfileData);
+        }
+
+        switchToViewMode();
+    }
+
 
     // Submit Form
     $("#profileForm").submit(function (e) {
@@ -309,9 +327,8 @@ $(document).ready(function () {
                 </td>
                 <td>
                     <div class="d-flex gap-2 justify-content-start">
-                        <button class="btn btn-outline-primary btn-sm"
-                                data-order-id="${order.id}"
-                                disabled>
+                        <button class="btn btn-outline-primary btn-sm btn-view-order"
+                                data-order-id="${order.id}">
                             View Details
                         </button>
 
@@ -393,5 +410,10 @@ $(document).ready(function () {
     $(document).on("click", ".btn-print-invoice", function () {
         let orderId = $(this).data("order-id");
         window.open("invoice.html?order_id=" + orderId, "_blank");
+    });
+
+    $(document).on("click", ".btn-view-order", function () {
+        let orderId = $(this).data("order-id");
+        window.location.href = "orderDetails.html?order_id=" + orderId;
     });
 });
