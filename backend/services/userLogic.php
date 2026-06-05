@@ -24,6 +24,12 @@ class UserLogic {
                 return $this->userDataHandler->getUserProfile();
             case "updateUserProfile":
                 return $this->userDataHandler->updateUserProfile($data);
+            case "getAllCustomers":
+                return $this->userDataHandler->getAllCustomers();
+            case "toggleCustomerStatus":
+                 return $this->userDataHandler->toggleCustomerStatus($data);
+            case "getUserDetailsForAdmin":
+                 return $this->userDataHandler->getUserDetailsForAdmin($data);
             default:
                 return ["success" => false, "message" => "Method not allowed"];
         }
