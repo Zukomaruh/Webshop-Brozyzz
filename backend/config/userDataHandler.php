@@ -80,18 +80,24 @@ class UserDataHandler {
     }
 
     public function loginUser($data) {
-        // SQL-Query sucht nun nach Email ODER Username
+        // SQL-Query erweitert, um auch den Status zu holen
         $sql = "SELECT * FROM users WHERE email = :identifier OR username = :identifier";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':identifier' => $data['identifier']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($data['password'], $user['password'])) {
+
+            //Wenn der User deaktiviert ist, Login sofort abbrechen!
+            if (isset($user['status']) && $user['status'] === 'inactive') {
+                return ["success" => false, "message" => "Your account has been deactivated. Please contact support."];
+            }
+
             $this->startUserSession($user);
 
-        if (isset($data['rememberMe']) && $data['rememberMe'] == "1") {
-            $this->createRememberToken($user['user_id']);
-        }
+            if (isset($data['rememberMe']) && $data['rememberMe'] == "1") {
+                $this->createRememberToken($user['user_id']);
+            }
 
             return [
                 "success" => true,
@@ -121,11 +127,29 @@ class UserDataHandler {
     }
 
     public function checkSession() {
-        if(session_status() == PHP_SESSION_NONE){ session_start(); }
+        if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
         $this->checkRememberLogin();
 
-        if(isset($_SESSION['user_id'])){ return ["loggedIn" => true, "role" => $_SESSION['role'],"firstname" => $_SESSION['firstname']]; }
+        if (isset($_SESSION['user_id'])) {
+
+            // NEU: Live-Check in der DB, ob der User noch aktiv ist
+            try {
+                $stmt = $this->db->prepare("SELECT status FROM users WHERE user_id = :uid");
+                $stmt->execute([':uid' => $_SESSION['user_id']]);
+                $userStatus = $stmt->fetchColumn();
+
+                // Wenn er in der DB inaktiv ist -> Session zerstören!
+                if ($userStatus === 'inactive') {
+                    $this->logoutUser(); // Ruft deine bestehende Logout-Logik auf (löscht auch Cookies)
+                    return ["loggedIn" => false, "message" => "Account deactivated."];
+                }
+            } catch (PDOException $e) {
+                // Bei DB-Fehler im Zweifel eingeloggt lassen oder restriktiv blockieren
+            }
+
+            return ["loggedIn" => true, "role" => $_SESSION['role'], "firstname" => $_SESSION['firstname']];
+        }
         return ["loggedIn" => false];
     }
 
@@ -317,6 +341,8 @@ class UserDataHandler {
             session_start();
         }
 
+        // Wenn er schon eine Session hat, prüfen wir seinen Status weiter unten in checkSession,
+        // daher lassen wir das hier so, falls er KEINE Session hat, aber ein Cookie:
         if (isset($_SESSION['user_id'])) {
             return true;
         }
@@ -329,6 +355,7 @@ class UserDataHandler {
         $tokenHash = hash("sha256", $token);
 
         try {
+            // SQL-Query fragt nun den Status ab
             $sql = "SELECT users.*
                     FROM remember_tokens
                     JOIN users ON remember_tokens.user_id = users.user_id
@@ -341,6 +368,12 @@ class UserDataHandler {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
+                // NEU: Wenn der User über das Cookie kommt, aber inaktiv ist, Token löschen!
+                if ($user['status'] === 'inactive') {
+                    $this->clearRememberToken();
+                    return false;
+                }
+
                 $this->startUserSession($user);
                 return true;
             }
@@ -370,4 +403,57 @@ class UserDataHandler {
             "secure" => !empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off"
         ]);
     }
+
+    public function getAllCustomers() {
+            if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                return ["success" => false, "message" => "Unauthorized access. Admins only."];
+            }
+
+            try {
+                // "status" und "role" zur Query hinzugefügt
+                $sql = "SELECT user_id, firstname, lastname, gender, username, email, role, status FROM users ORDER BY user_id ASC";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute();
+                $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                return ["success" => true, "data" => $customers];
+            } catch (PDOException $e) {
+                return ["success" => false, "message" => "Database error: " . $e->getMessage()];
+            }
+        }
+
+        //Für Customer-Deactivation
+        public function toggleCustomerStatus($data) {
+            if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+            // Server-Schutz
+            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                return ["success" => false, "message" => "Unauthorized access. Admins only."];
+            }
+
+            if (!isset($data['userId']) || !isset($data['status'])) {
+                return ["success" => false, "message" => "Missing parameters."];
+            }
+
+            try {
+                // Eigener Schutz: Ein Admin darf sich nicht selbst deaktivieren
+                if ($data['userId'] == $_SESSION['user_id']) {
+                    return ["success" => false, "message" => "You cannot deactivate your own admin account."];
+                }
+
+                $sql = "UPDATE users SET status = :status WHERE user_id = :uid";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':status' => $data['status'],
+                    ':uid' => $data['userId']
+                ]);
+
+                return ["success" => true, "message" => "Customer status updated successfully."];
+
+            } catch (PDOException $e) {
+                return ["success" => false, "message" => "Database error: " . $e->getMessage()];
+            }
+        }
 }
