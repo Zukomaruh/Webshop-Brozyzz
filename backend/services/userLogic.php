@@ -28,6 +28,8 @@ class UserLogic {
                 return $this->userDataHandler->getAllCustomers();
             case "toggleCustomerStatus":
                  return $this->userDataHandler->toggleCustomerStatus($data);
+            case "getUserDetailsForAdmin":
+                 return $this->userDataHandler->getUserDetailsForAdmin($data);
             default:
                 return ["success" => false, "message" => "Method not allowed"];
         }

@@ -215,6 +215,35 @@ class UserDataHandler {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    //Diese Methode holt speziell für den Admin alle nötigen Modal-Daten eines Users (ohne Passwort)
+    public function getUserDetailsForAdmin($data) {
+        if (session_status() == PHP_SESSION_NONE) { session_start(); }
+
+        // Server-Sicherheitscheck
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            return ["success" => false, "message" => "Unauthorized access. Admins only."];
+        }
+
+        if (!isset($data['userId'])) {
+            return ["success" => false, "message" => "Missing user ID."];
+        }
+
+        try {
+            $sql = "SELECT username, firstname, lastname, gender, email, address, zip, city, payment_method
+                    FROM users WHERE user_id = :uid";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':uid' => $data['userId']]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                return ["success" => true, "data" => $user];
+            }
+            return ["success" => false, "message" => "User not found."];
+        } catch (PDOException $e) {
+            return ["success" => false, "message" => "Database error: " . $e->getMessage()];
+        }
+    }
+
     public function updateUserProfile($userData) {
         if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
