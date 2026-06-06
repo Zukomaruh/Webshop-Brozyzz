@@ -25,6 +25,10 @@ class OrderLogic
                 return $this->getOrders();
             case "getOrderById":
                 return $this->getOrderById($data);
+            case "getOrdersByCustomerForAdmin":
+                return $this->orderDataHandler->getOrdersByCustomerForAdmin($data);
+            case "getOrderDetailsForAdmin":
+                return $this->orderDataHandler->getOrderDetailsForAdmin($data);
             default:
                 return ["error" => "Unknown method"];
         }

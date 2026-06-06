@@ -65,8 +65,8 @@ function displayOrderDetails(data) {
     $("#orderDetailWrapper").removeClass("d-none");
 
     $("#orderId").text("#" + order.id);
-    $("#orderDate").text(formatOrderDate(order.created_at));
-    $("#orderStatus").html(getStatusBadge(order.status));
+    $("#orderDate").text(OrderUtils.formatOrderDate(order.created_at));
+    $("#orderStatus").html(OrderUtils.renderOrderStatusBadge(order.status));
     $("#customerName").text(order.firstname + " " + order.lastname);
 
     let tableBody = $("#orderItemsTableBody");
@@ -111,81 +111,6 @@ function showOrderMessage(message, type) {
             ${message}
         </div>
     `);
-}
-
-function formatOrderDate(dateString) {
-    if (!dateString) {
-        return "-";
-    }
-
-    let datePart = dateString.substring(0, 10);
-    let parts = datePart.split("-");
-
-    if (parts.length !== 3) {
-        return dateString;
-    }
-
-    return parts[2] + "." + parts[1] + "." + parts[0];
-}
-
-function getStatusBadge(status) {
-    let statusInfo;
-
-    switch (status) {
-        case "pending":
-            statusInfo = {
-                text: "Pending",
-                badgeClass: "bg-warning"
-            };
-            break;
-
-        case "processing":
-            statusInfo = {
-                text: "Processing",
-                badgeClass: "bg-info"
-            };
-            break;
-
-        case "shipped":
-            statusInfo = {
-                text: "Shipped",
-                badgeClass: "bg-primary"
-            };
-            break;
-
-        case "delivered":
-            statusInfo = {
-                text: "Delivered",
-                badgeClass: "bg-success"
-            };
-            break;
-
-        case "cancelled":
-            statusInfo = {
-                text: "Cancelled",
-                badgeClass: "bg-danger"
-            };
-            break;
-
-        case "refunded":
-            statusInfo = {
-                text: "Refunded",
-                badgeClass: "bg-secondary"
-            };
-            break;
-
-        default:
-            statusInfo = {
-                text: status,
-                badgeClass: "bg-dark"
-            };
-    }
-
-    return `
-        <span class="badge ${statusInfo.badgeClass}">
-            ${statusInfo.text}
-        </span>
-    `;
 }
 
 function escapeHtml(text) {
