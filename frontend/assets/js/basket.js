@@ -93,13 +93,80 @@ $(document).ready(function () {
         }
     });
     $("#btnCheckout").on("click", function () {
+        console.log("checkout clicked");
+        // User-Daten laden
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/userServiceHandler.php",
+            data: { method: "getUserProfile" },
+            dataType: "json",
+            success: function (userRes) {
+                if (!userRes.success) {
+                    $("#checkoutMsg").html(`
+                    <div class="alert alert-warning">Please log in to place an order.</div>
+                `);
+                    return;
+                }
+
+                let user = userRes.data;
+
+                // Userdaten ins Modal schreiben
+                let paymentDisplay = user.payment_method === "creditcard" ? "Credit Card" : "Invoice";
+                $("#modalUserInfo").html(`
+                <strong>${user.firstname} ${user.lastname}</strong><br>
+                ${user.address}, ${user.zip} ${user.city}<br>
+                <span class="badge bg-secondary">${paymentDisplay}</span>
+            `);
+
+                // Cart-Items ins Modal schreiben
+                let cartBody = $("#modalCartItems");
+                let cartFoot = $("#modalCartTotal");
+                cartBody.empty();
+                cartFoot.empty();
+
+                let total = 0;
+                $("#cartTableBody tr").each(function () {
+                    let cols = $(this).find("td");
+                    if (cols.length >= 4) {
+                        let name  = $(cols[0]).text();
+                        let sum   = $(cols[3]).text();
+                        total    += parseFloat(sum);
+                        cartBody.append(`
+                        <tr>
+                            <td>${name}</td>
+                            <td class="text-end">${sum}</td>
+                        </tr>
+                    `);
+                    }
+                });
+
+                cartFoot.append(`
+                <tr class="fw-bold">
+                    <td>Total:</td>
+                    <td class="text-end">${total.toFixed(2)} €</td>
+                </tr>
+            `);
+
+                // Modal öffnen
+                let modal = new bootstrap.Modal(document.getElementById("checkoutModal"));
+                modal.show();
+            }
+        });
+    });
+
+// Confirm Order Button
+    $("#btnConfirmOrder").on("click", function () {
+        console.log("confirm clicked");
+        // Modal schließen
+        bootstrap.Modal.getInstance(document.getElementById("checkoutModal")).hide();
+
+        // Order platzieren
         $.ajax({
             type: "POST",
             url: "../../backend/services/orderServiceHandler.php",
             data: { method: "placeOrder" },
             dataType: "json",
             success: function (res) {
-                console.log(res);
                 if (res.error === "not_logged_in") {
                     $("#checkoutMsg").html(`
                     <div class="alert alert-warning">Please log in to place an order.</div>
@@ -112,7 +179,7 @@ $(document).ready(function () {
                     let fields = res.missing.join(", ");
                     $("#checkoutMsg").html(`
                     <div class="alert alert-warning">
-                       Please complete your profile first. Missing: <strong>${fields}</strong>
+                        Please complete your profile first. Missing: <strong>${fields}</strong>
                         <br><a href="profile.html" class="btn btn-sm btn-outline-dark mt-2">Go to Profile</a>
                     </div>
                 `);
@@ -121,11 +188,9 @@ $(document).ready(function () {
                     if (typeof window.refreshCartBadge === "function") {
                         window.refreshCartBadge();
                     }
-
-                    //Bestätigung anzeigen
                     $("#checkoutMsg").html(`
-                        <div class="alert alert-success">Order placed successfully! Order ID: ${res.order_id} | Total: ${res.total} €</div>
-                    `);
+                    <div class="alert alert-success">Order placed successfully! Order ID: ${res.order_id} | Total: ${res.total} €</div>
+                `);
                 }
             }
         });
