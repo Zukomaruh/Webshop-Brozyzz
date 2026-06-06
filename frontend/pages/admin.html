@@ -89,6 +89,29 @@
     </table>
 </div>
 
+<div id="customerOrdersView" class="container mt-3" style="display:none;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 id="customerOrdersTitle" class="mb-0">Customer Orders</h3>
+        <button id="btnBackToCustomerList" class="btn btn-outline-secondary btn-sm">
+            Back to customer list
+        </button>
+    </div>
+
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-dark">
+        <tr>
+            <th>Order ID</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th class="text-end">Actions</th>
+        </tr>
+        </thead>
+        <tbody id="customerOrdersTableBody">
+        </tbody>
+    </table>
+</div>
+
 <div class="modal fade" id="customerDetailModal" tabindex="-1" aria-labelledby="customerDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg">
@@ -113,8 +136,26 @@
     </div>
 </div>
 
+<div class="modal fade" id="orderDetailModal" tabindex="-1" aria-labelledby="orderDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="orderDetailModalLabel">Order Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="orderDetailContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/orderUtils.js"></script>
 <script src="../assets/js/admin.js"></script>
 <script src="../components/navbar.js"></script>
 <script src="../assets/js/authGuard.js"></script>

@@ -80,4 +80,69 @@ class OrderDataHandler {
             'items' => $items
         ];
     }
+
+    public function getOrdersByCustomerForAdmin($data) {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            return ["success" => false, "message" => "Unauthorized access. Admins only."];
+        }
+
+        if (!isset($data['userId'])) {
+            return ["success" => false, "message" => "Missing user ID."];
+        }
+
+        try {
+            $stmt = $this->db->prepare("
+                SELECT
+                    id,
+                    status,
+                    total,
+                    created_at
+                FROM orders
+                WHERE user_id = :user_id
+                ORDER BY created_at DESC
+            ");
+
+            $stmt->execute([
+                ':user_id' => $data['userId']
+            ]);
+
+            $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return ["success" => true, "data" => $orders];
+
+        } catch (PDOException $e) {
+            return ["success" => false, "message" => "Database error: " . $e->getMessage()];
+        }
+    }
+
+    public function getOrderDetailsForAdmin($data) {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            return ["success" => false, "message" => "Unauthorized access. Admins only."];
+        }
+
+        if (!isset($data['orderId'])) {
+            return ["success" => false, "message" => "Missing order ID."];
+        }
+
+        try {
+            $orderDetails = $this->getOrderById($data['orderId']);
+
+            if (!$orderDetails['order']) {
+                return ["success" => false, "message" => "Order not found."];
+            }
+
+            return ["success" => true, "data" => $orderDetails];
+
+        } catch (PDOException $e) {
+            return ["success" => false, "message" => "Database error: " . $e->getMessage()];
+        }
+    }
 }
