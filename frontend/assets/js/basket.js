@@ -93,7 +93,6 @@ $(document).ready(function () {
         }
     });
     $("#btnCheckout").on("click", function () {
-        console.log("checkout clicked");
         // User-Daten laden
         $.ajax({
             type: "POST",
@@ -156,7 +155,6 @@ $(document).ready(function () {
 
 // Confirm Order Button
     $("#btnConfirmOrder").on("click", function () {
-        console.log("confirm clicked");
         // Modal schließen
         bootstrap.Modal.getInstance(document.getElementById("checkoutModal")).hide();
 
