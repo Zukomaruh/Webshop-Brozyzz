@@ -311,9 +311,9 @@ $(document).ready(function () {
         $("#ordersTableWrapper").removeClass("d-none");
 
         orders.forEach(function (order) {
-            let formattedDate = formatOrderDate(order.created_at);
+            let formattedDate = OrderUtils.formatOrderDate(order.created_at);
             let formattedTotal = parseFloat(order.total).toFixed(2);
-            let statusInfo = getStatusInfo(order.status);
+            let statusInfo = OrderUtils.getStatusInfo(order.status);
 
             let row = `
             <tr>

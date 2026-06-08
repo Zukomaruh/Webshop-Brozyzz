@@ -10,6 +10,7 @@ $(document).ready(function () {
         $("#addProductView").show();
         $("#productListView").hide();
         $("#customerListView").hide();
+        $("#customerOrdersView").hide();
 
         $("#btnShowAddProduct").addClass("btn-primary").removeClass("btn-outline-primary");
         $("#btnShowProductList").addClass("btn-outline-primary").removeClass("btn-primary");
@@ -21,6 +22,7 @@ $(document).ready(function () {
         $("#productListView").show();
         $("#addProductView").hide();
         $("#customerListView").hide();
+        $("#customerOrdersView").hide();
 
         $("#btnShowProductList").addClass("btn-primary").removeClass("btn-outline-primary");
         $("#btnShowAddProduct").addClass("btn-outline-primary").removeClass("btn-primary");
@@ -35,6 +37,7 @@ $(document).ready(function () {
         $("#customerListView").show();
         $("#productListView").hide();
         $("#addProductView").hide();
+        $("#customerOrdersView").hide();
 
         $("#btnShowCustomerList").addClass("btn-primary").removeClass("btn-outline-primary");
         $("#btnShowProductList").addClass("btn-outline-primary").removeClass("btn-primary");
@@ -165,6 +168,25 @@ $(document).ready(function () {
         });
     }
 
+    // Adresse bei Order Details formatieren
+    function formatShippingAddress(shippingAddress) {
+        if (!shippingAddress) {
+            return "N/A";
+        }
+
+        try {
+            let addressData = JSON.parse(shippingAddress);
+
+            let address = addressData.address || "";
+            let zip = addressData.zip || "";
+            let city = addressData.city || "";
+
+            return `${address}, ${zip} ${city}`;
+        } catch (e) {
+            return shippingAddress;
+        }
+    }
+
     // Event-Handler für den Aktivieren/Deaktivieren-Button
     $(document).on("click", ".btn-toggle-status", function () {
         let userId = $(this).data("id");
@@ -230,6 +252,185 @@ $(document).ready(function () {
             },
             error: function (xhr) {
                 console.error("Error loading customer details:", xhr.responseText);
+            }
+        });
+    });
+
+// Event-Handler für View Orders
+    $(document).on("click", ".btn-view-orders", function () {
+        let userId = $(this).data("id");
+        let customerName = $(this).closest("tr").find("td").eq(2).text();
+
+        $("#customerListView").hide();
+        $("#productListView").hide();
+        $("#addProductView").hide();
+        $("#customerOrdersView").show();
+
+        $("#customerOrdersTitle").text("Orders of " + customerName);
+
+        loadCustomerOrders(userId);
+    });
+
+// Zurück zur Customer List
+    $("#btnBackToCustomerList").click(function () {
+        $("#customerOrdersView").hide();
+        $("#customerListView").show();
+    });
+
+// Lädt alle Bestellungen eines ausgewählten Kunden
+    function loadCustomerOrders(userId) {
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/orderServiceHandler.php",
+            data: {
+                method: "getOrdersByCustomerForAdmin",
+                userId: userId
+            },
+            dataType: "json",
+
+            success: function (response) {
+                $("#customerOrdersTableBody").empty();
+
+                if (response.success) {
+                    if (!response.data || response.data.length === 0) {
+                        $("#customerOrdersTableBody").append(`
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                No orders found for this customer.
+                            </td>
+                        </tr>
+                    `);
+                        return;
+                    }
+
+                    response.data.forEach(function (order) {
+                        let total = parseFloat(order.total).toFixed(2);
+
+                        let row = `
+                        <tr>
+                            <td>${order.id}</td>
+                            <td>${OrderUtils.formatOrderDate(order.created_at, true)}</td>
+                            <td>${OrderUtils.renderOrderStatusBadge(order.status)}</td>
+                            <td>${total} €</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-info text-white btn-view-order-detail" data-id="${order.id}">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+
+                        $("#customerOrdersTableBody").append(row);
+                    });
+                } else {
+                    alert(response.message);
+                }
+            },
+
+            error: function (xhr) {
+                console.error("Error loading customer orders:", xhr.responseText);
+            }
+        });
+    }
+
+    // Event-Handler für Order Details
+    $(document).on("click", ".btn-view-order-detail", function () {
+        let orderId = $(this).data("id");
+
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/orderServiceHandler.php",
+            data: {
+                method: "getOrderDetailsForAdmin",
+                orderId: orderId
+            },
+            dataType: "json",
+
+            success: function (response) {
+                if (response.success) {
+                    let order = response.data.order;
+                    let items = response.data.items;
+
+                    let html = `
+                    <h5 class="mb-3">Order #${order.id}</h5>
+
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td class="fw-bold text-muted" style="width: 160px;">Customer:</td>
+                            <td>${order.firstname} ${order.lastname}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">Date:</td>
+                            <td>${OrderUtils.formatOrderDate(order.created_at, true)}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">Status:</td>
+                            <td>${OrderUtils.renderOrderStatusBadge(order.status)}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">Shipping address:</td>
+                            <td>${formatShippingAddress(order.shipping_address)}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">Subtotal:</td>
+                            <td>${parseFloat(order.subtotal).toFixed(2)} €</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">Tax:</td>
+                            <td>${parseFloat(order.tax_amount).toFixed(2)} €</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">Discount:</td>
+                            <td>${parseFloat(order.discount_amount).toFixed(2)} €</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">Total:</td>
+                            <td><strong>${parseFloat(order.total).toFixed(2)} €</strong></td>
+                        </tr>
+                    </table>
+
+                    <h6 class="mt-4">Ordered Products</h6>
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Unit price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                    items.forEach(function (item) {
+                        html += `
+                        <tr>
+                            <td>${item.product_name}</td>
+                            <td>${item.quantity}</td>
+                            <td>${parseFloat(item.unit_price).toFixed(2)} €</td>
+                            <td>${parseFloat(item.total).toFixed(2)} €</td>
+                        </tr>
+                    `;
+                    });
+
+                    html += `
+                        </tbody>
+                    </table>
+                `;
+
+                    $("#orderDetailContent").html(html);
+
+                    let modalElement = document.getElementById("orderDetailModal");
+                    let modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modalInstance.show();
+
+                } else {
+                    alert(response.message);
+                }
+            },
+
+            error: function (xhr) {
+                console.error("Error loading order details:", xhr.responseText);
             }
         });
     });
