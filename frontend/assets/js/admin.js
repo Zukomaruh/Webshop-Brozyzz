@@ -435,4 +435,93 @@ $(document).ready(function () {
         });
     });
 
+    //Delete Product
+    $(document).on("click", ".btn-delete", function () {
+        let productId = $(this).data("id");
+
+        if (confirm("Are you sure you want to delete this product?")) {
+            $.ajax({
+                type: "POST",
+                url: "../../backend/services/productServiceHandler.php",
+                data: { method: "deleteProduct", product_id: productId },
+                dataType: "json",
+                success: function (response) {
+                    if (response.success) {
+                        loadProducts();
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Error deleting product:", xhr.responseText);
+                }
+            });
+        }
+    });
+
+    //Edit Product lädt Daten von db und öffnet Modal
+    $(document).on("click", ".btn-edit", function () {
+        let productId = $(this).data("id");
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/productServiceHandler.php",
+            data: { method: "getProductById", product_id: productId },
+            dataType: "json",
+            success: function (product) {
+                console.log(product);
+                $("#editProductId").val(product.product_id);
+                $("#editProductName").val(product.name);
+                $("#editProductDescription").val(product.description);
+                $("#editProductPrice").val(product.price);
+                $("#editProductCategory").val(product.category);
+                $("#editProductRating").val(product.rating);
+
+                // Modal öffnen
+                let modal = new bootstrap.Modal(document.getElementById("editProductModal"));
+                modal.show();
+            },
+            error: function (xhr) {
+                console.error("Error loading product:", xhr.responseText);
+            }
+        });
+    });
+
+    //Save Changes in edit Product Modul
+    $("#btnSaveProduct").on("click", function () {
+        let formData = new FormData();
+        formData.append("method", "updateProduct");
+        formData.append("product_id", $("#editProductId").val());
+        formData.append("name", $("#editProductName").val());
+        formData.append("description", $("#editProductDescription").val());
+        formData.append("price", $("#editProductPrice").val());
+        formData.append("category", $("#editProductCategory").val());
+        formData.append("rating", $("#editProductRating").val());
+
+        // Bild nur anhängen wenn eines ausgewählt wurde
+        let imageFile = $("#editProductImage")[0].files[0];
+        if (imageFile) {
+            formData.append("image", imageFile);
+        }
+
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/productServiceHandler.php",
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    bootstrap.Modal.getInstance(document.getElementById("editProductModal")).hide();
+                    loadProducts();
+                } else {
+                    alert(response.message);
+                }
+            },
+            error: function (xhr) {
+                console.error("Error updating product:", xhr.responseText);
+            }
+        });
+    });
+
 });

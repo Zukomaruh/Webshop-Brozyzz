@@ -13,6 +13,9 @@ class ProductLogic {
             case "getAllProducts":
                 return $this->dh->getAllProducts();
 
+            case "getProductById":
+                return $this->dh->getProductById($data["product_id"] ?? null);
+
             case "createProduct":
                 return $this->dh->createProduct($data, $files["image"] ?? null);
 
@@ -24,6 +27,12 @@ class ProductLogic {
 
             case "searchProducts":
                 return $this->dh->searchProducts($data["query"] ?? "");
+
+            case "updateProduct":
+                return $this->dh->updateProduct($data["product_id"], $data, $files["image"] ?? null);
+
+            case "deleteProduct":
+                return $this->dh->deleteProduct($data["product_id"] ?? null);
 
             default:
                 return ["success" => false, "message" => "Method not allowed"];
