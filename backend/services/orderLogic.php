@@ -29,6 +29,8 @@ class OrderLogic
                 return $this->orderDataHandler->getOrdersByCustomerForAdmin($data);
             case "getOrderDetailsForAdmin":
                 return $this->orderDataHandler->getOrderDetailsForAdmin($data);
+           case "removeOrderItemFromOrder":
+               return $this->orderDataHandler->removeOrderItemFromOrder($data);
             default:
                 return ["error" => "Unknown method"];
         }

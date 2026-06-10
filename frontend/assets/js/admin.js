@@ -3,6 +3,7 @@ $(document).ready(function () {
     // Prüffunktion beim Laden der Seite
     requireAdmin();
     loadProducts();
+    let currentCustomerId = null;
     $("body").show();
 
     // Switch zu Add Product
@@ -259,6 +260,7 @@ $(document).ready(function () {
 // Event-Handler für View Orders
     $(document).on("click", ".btn-view-orders", function () {
         let userId = $(this).data("id");
+        currentCustomerId = userId;
         let customerName = $(this).closest("tr").find("td").eq(2).text();
 
         $("#customerListView").hide();
@@ -397,6 +399,7 @@ $(document).ready(function () {
                                 <th>Quantity</th>
                                 <th>Unit price</th>
                                 <th>Total</th>
+                                <th class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -409,6 +412,14 @@ $(document).ready(function () {
                             <td>${item.quantity}</td>
                             <td>${parseFloat(item.unit_price).toFixed(2)} €</td>
                             <td>${parseFloat(item.total).toFixed(2)} €</td>
+                            <td class="text-end">
+                                <button 
+                                    class="btn btn-sm btn-outline-danger btn-remove-order-item"
+                                    data-order-id="${order.id}"
+                                    data-item-id="${item.order_item_id}">
+                                    Remove
+                                </button>
+                            </td>
                         </tr>
                     `;
                     });
@@ -431,6 +442,44 @@ $(document).ready(function () {
 
             error: function (xhr) {
                 console.error("Error loading order details:", xhr.responseText);
+            }
+        });
+    });
+
+    //Remove-Click-Handler
+    $(document).on("click", ".btn-remove-order-item", function () {
+        let orderId = $(this).data("order-id");
+        let orderItemId = $(this).data("item-id");
+
+        if (!confirm("Are you sure you want to remove this product from the order?")) {
+            return;
+        }
+
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/orderServiceHandler.php",
+            data: {
+                method: "removeOrderItemFromOrder",
+                orderId: orderId,
+                orderItemId: orderItemId
+            },
+            dataType: "json",
+
+            success: function (response) {
+                if (response.success) {
+                    $(".btn-view-order-detail[data-id='" + orderId + "']").click();
+
+                    if (currentCustomerId) {
+                        loadCustomerOrders(currentCustomerId);
+                    }
+                } else {
+                    alert(response.message);
+                }
+            },
+
+            error: function (xhr) {
+                console.error("Error removing order item:", xhr.responseText);
+                alert("Error connecting to the server.");
             }
         });
     });
