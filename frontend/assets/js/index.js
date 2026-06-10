@@ -16,7 +16,8 @@ $(document).ready(function () {
     });
 
     // Produkt in den Warenkorb legen
-    $(document).on("click", ".btn-add-cart", function () {
+    $(document).on("click", ".btn-add-cart", function (event) {
+        event.stopPropagation();
         let productId = $(this).data("id");
 
         $.ajax({
@@ -32,8 +33,6 @@ $(document).ready(function () {
                 if (typeof window.refreshCartBadge === "function") {
                     window.refreshCartBadge();
                 }
-
-                console.log("Products were added to the basket.");
             },
 
             error: function (xhr) {
@@ -155,7 +154,6 @@ $(document).ready(function () {
             dataType: "json",
 
             success: function (products) {
-                console.log("Loaded products:", products);
                 renderProducts(products);
             },
 
@@ -197,7 +195,7 @@ $(document).ready(function () {
 
             let productCard = `
                 <div class="col-md-4 mb-4">
-                    <div class="card h-100">
+                    <div class="card h-100 product-card" data-id="${product.product_id}" style="cursor: pointer;">
                         <img src="${imageSrc}" class="card-img-top" alt="${escapeHtml(product.name)}">
 
                         <div class="card-body">
@@ -231,6 +229,12 @@ $(document).ready(function () {
             container.append(productCard);
         });
     }
+
+    // Öffnet die Produktdetailseite beim Klick auf eine Produktkarte
+    $(document).on("click", ".product-card", function () {
+        let productId = $(this).data("id");
+        window.location.href = `pages/productDetails.html?product_id=${productId}`;
+    });
 
     // Verhindert, dass Sonderzeichen oder HTML im Produktnamen die Seite kaputt machen
     function escapeHtml(text) {
