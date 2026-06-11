@@ -1,4 +1,6 @@
 $(document).ready(function () {
+    let selectedCheckoutPaymentId = "default";
+
     loadBasket();
 
     function loadBasket() {
@@ -93,64 +95,114 @@ $(document).ready(function () {
         }
     });
     $("#btnCheckout").on("click", function () {
-        // User-Daten laden
-        $.ajax({
+        let userRequest = $.ajax({
             type: "POST",
             url: "../../backend/services/userServiceHandler.php",
             data: { method: "getUserProfile" },
-            dataType: "json",
-            success: function (userRes) {
-                if (!userRes.success) {
-                    $("#checkoutMsg").html(`
-                    <div class="alert alert-warning">Please log in to place an order.</div>
+            dataType: "json"
+        });
+
+        let paymentMethodsRequest = $.ajax({
+            type: "POST",
+            url: "../../backend/services/userServiceHandler.php",
+            data: { method: "getPaymentMethods" },
+            dataType: "json"
+        });
+
+        $.when(userRequest, paymentMethodsRequest).done(function (userResult, paymentMethodsResult) {
+            let userRes = userResult[0];
+            let paymentMethodsRes = paymentMethodsResult[0];
+
+            if (!userRes.success) {
+                $("#checkoutMsg").html(`
+                <div class="alert alert-warning">Please log in to place an order.</div>
+            `);
+                return;
+            }
+
+            let user = userRes.data;
+
+            $("#modalUserInfo").html(`
+            <strong>${user.firstname} ${user.lastname}</strong><br>
+            ${user.address}, ${user.zip} ${user.city}
+        `);
+
+            fillCheckoutPaymentMethods(user, paymentMethodsRes.success ? paymentMethodsRes.data : []);
+            fillCheckoutCartSummary();
+
+            let modal = new bootstrap.Modal(document.getElementById("checkoutModal"));
+            modal.show();
+        }).fail(function () {
+            $("#checkoutMsg").html(`
+            <div class="alert alert-danger">Error loading checkout data.</div>
+        `);
+        });
+    });
+
+    function fillCheckoutPaymentMethods(user, paymentMethods) {
+        let select = $("#checkoutPaymentMethod");
+        select.empty();
+
+        select.append(`
+            <option value="default">
+                Default: ${formatPaymentMethodLabel(user.payment_method, user.payment_method === "creditcard" ? "****" : "")}
+            </option>
+        `);
+
+        paymentMethods
+            .filter(paymentMethod => paymentMethod.is_default == 0)
+            .forEach(function (paymentMethod) {
+                select.append(`
+                    <option value="${paymentMethod.id}">
+                        ${formatPaymentMethodLabel(paymentMethod.method, paymentMethod.details)}
+                    </option>
                 `);
-                    return;
-                }
+            });
 
-                let user = userRes.data;
+        selectedCheckoutPaymentId = "default";
+        select.val(selectedCheckoutPaymentId);
+    }
 
-                // Userdaten ins Modal schreiben
-                let paymentDisplay = user.payment_method === "creditcard" ? "Credit Card" : "Invoice";
-                $("#modalUserInfo").html(`
-                <strong>${user.firstname} ${user.lastname}</strong><br>
-                ${user.address}, ${user.zip} ${user.city}<br>
-                <span class="badge bg-secondary">${paymentDisplay}</span>
-            `);
+    function formatPaymentMethodLabel(method, details) {
+        if (method === "creditcard") {
+            return "Credit Card " + (details ? "(" + details + ")" : "(****)");
+        }
 
-                // Cart-Items ins Modal schreiben
-                let cartBody = $("#modalCartItems");
-                let cartFoot = $("#modalCartTotal");
-                cartBody.empty();
-                cartFoot.empty();
+        return "Invoice";
+    }
 
-                let total = 0;
-                $("#cartTableBody tr").each(function () {
-                    let cols = $(this).find("td");
-                    if (cols.length >= 4) {
-                        let name  = $(cols[0]).text();
-                        let sum   = $(cols[3]).text();
-                        total    += parseFloat(sum);
-                        cartBody.append(`
-                        <tr>
-                            <td>${name}</td>
-                            <td class="text-end">${sum}</td>
-                        </tr>
-                    `);
-                    }
-                });
+    function fillCheckoutCartSummary() {
+        let cartBody = $("#modalCartItems");
+        let cartFoot = $("#modalCartTotal");
+        cartBody.empty();
+        cartFoot.empty();
 
-                cartFoot.append(`
-                <tr class="fw-bold">
-                    <td>Total:</td>
-                    <td class="text-end">${total.toFixed(2)} €</td>
-                </tr>
-            `);
-
-                // Modal öffnen
-                let modal = new bootstrap.Modal(document.getElementById("checkoutModal"));
-                modal.show();
+        let total = 0;
+        $("#cartTableBody tr").each(function () {
+            let cols = $(this).find("td");
+            if (cols.length >= 4) {
+                let name = $(cols[0]).text();
+                let sum = $(cols[3]).text();
+                total += parseFloat(sum);
+                cartBody.append(`
+                    <tr>
+                        <td>${name}</td>
+                        <td class="text-end">${sum}</td>
+                    </tr>
+                `);
             }
         });
+
+        cartFoot.append(`
+            <tr class="fw-bold">
+                <td>Total:</td>
+                <td class="text-end">${total.toFixed(2)} €</td>
+            </tr>
+        `);
+    }
+
+    $("#checkoutPaymentMethod").on("change", function () {
+        selectedCheckoutPaymentId = $(this).val();
     });
 
 // Confirm Order Button
@@ -162,7 +214,10 @@ $(document).ready(function () {
         $.ajax({
             type: "POST",
             url: "../../backend/services/orderServiceHandler.php",
-            data: { method: "placeOrder" },
+            data: {
+                method: "placeOrder",
+                paymentMethodId: selectedCheckoutPaymentId
+            },
             dataType: "json",
             success: function (res) {
                 if (res.error === "not_logged_in") {
@@ -180,6 +235,10 @@ $(document).ready(function () {
                         Please complete your profile first. Missing: <strong>${fields}</strong>
                         <br><a href="profile.html" class="btn btn-sm btn-outline-dark mt-2">Go to Profile</a>
                     </div>
+                `);
+                } else if (res.error === "invalid_payment_method") {
+                    $("#checkoutMsg").html(`
+                    <div class="alert alert-warning">Please select a valid payment method.</div>
                 `);
                 } else if (res.success) {
                     loadBasket();

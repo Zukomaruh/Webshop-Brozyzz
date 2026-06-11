@@ -87,9 +87,8 @@ $(document).ready(function () {
         $("#city").val(user.city);
         $("#paymentMethod").val(user.payment_method);
 
-        if (user.payment_method === "creditcard" && user.payment_details) {
-            let maskedCard = maskCreditCard(user.payment_details);
-            $("#paymentDetails").val(maskedCard);
+        if (user.payment_method === "creditcard") {
+            $("#paymentDetails").val(getMaskedCreditCardDisplay(user.payment_details));
         } else {
             $("#paymentDetails").val(user.payment_details);
         }
@@ -98,10 +97,12 @@ $(document).ready(function () {
     }
 
     function maskCreditCard(cardNumber) {
-        let cleaned = cardNumber.replace(/\s+/g, '');
-        if (cleaned.length < 4) return "****";
-        let lastFour = cleaned.slice(-4);
-        return "*".repeat(cleaned.length - 4) + lastFour;
+        return "****";
+    }
+
+    function getMaskedCreditCardDisplay(cardNumber) {
+        if (!cardNumber) return "****";
+        return maskCreditCard(cardNumber);
     }
 
     // Edit Profile Clicked
@@ -112,6 +113,7 @@ $(document).ready(function () {
             $("#paymentDetails").val('').attr("placeholder", "Enter new card number or leave empty to keep current");
             $("#paymentDetails").prop('required', false);
         }
+        enableAdditionalPaymentEditMode();
 
         // Tausche Attrappe gegen echte Eingabefelder aus
         $("#dummyPasswordGroup").attr("style", "display: none !important;");
@@ -149,9 +151,73 @@ $(document).ready(function () {
         }
     }
 
+    function enableAdditionalPaymentEditMode() {
+        $(".additional-payment-method").prop('disabled', false);
+        $(".additional-payment-details")
+            .val('')
+            .attr("placeholder", "Enter new card number or leave empty to keep current")
+            .prop('required', false);
+        $(".additional-payment-method").each(function () {
+            toggleAdditionalCreditCardDisplay($(this));
+        });
+    }
+
+    function setAdditionalPaymentViewMode() {
+        $(".additional-payment-method").prop('disabled', true);
+        $(".additional-payment-details")
+            .val(getMaskedCreditCardDisplay())
+            .attr("placeholder", "")
+            .prop('disabled', true)
+            .prop('required', false);
+        $(".additional-card-group").hide();
+        $(".additional-payment-method").each(function () {
+            if ($(this).val() === "creditcard") {
+                $(this).closest(".additional-payment-row").find(".additional-card-group").show();
+            }
+        });
+    }
+
+    function toggleAdditionalCreditCardDisplay(selectElement) {
+        let row = selectElement.closest(".additional-payment-row");
+        let detailsInput = row.find(".additional-payment-details");
+
+        if (selectElement.val() === "creditcard") {
+            let hasExistingCreditCard = selectElement.data("original-method") === "creditcard";
+            row.find(".additional-card-group").show();
+            detailsInput
+                .attr("placeholder", hasExistingCreditCard ? "Enter new card number or leave empty to keep current" : "Enter card number")
+                .prop('disabled', false)
+                .prop('required', !hasExistingCreditCard);
+        } else {
+            row.find(".additional-card-group").hide();
+            detailsInput
+                .val('')
+                .prop('disabled', false)
+                .prop('required', false);
+        }
+    }
+
+    function collectAdditionalPaymentMethods() {
+        let paymentMethods = [];
+
+        $(".additional-payment-method").each(function () {
+            let select = $(this);
+            let row = select.closest(".additional-payment-row");
+
+            paymentMethods.push({
+                id: select.data("payment-id"),
+                paymentMethod: select.val(),
+                details: row.find(".additional-payment-details").val().trim()
+            });
+        });
+
+        return paymentMethods;
+    }
+
     function switchToViewMode() {
         $("#profileForm").find('input, select').prop('disabled', true);
         $("#paymentDetails").attr("placeholder", "");
+        setAdditionalPaymentViewMode();
 
         // Tausche echte Eingabefelder wieder zurück gegen die Attrappe
         $("#passwordChangeGroup").attr("style", "display: none !important;");
@@ -210,6 +276,7 @@ $(document).ready(function () {
                 city: $("#city").val(),
                 paymentMethod: $("#paymentMethod").val(),
                 paymentDetails: $("#paymentDetails").val(),
+                additionalPaymentMethods: collectAdditionalPaymentMethods(),
                 passwordConfirm: $("#passwordConfirm").val(),
                 newPassword: newPassword
             },
@@ -218,6 +285,7 @@ $(document).ready(function () {
                 if (response.success) {
                     showMessage(response.message, "success");
                     loadUserProfile();
+                    loadAdditionalPaymentMethods();
                     switchToViewMode();
                 } else {
                     showMessage(response.message, "danger");
@@ -416,4 +484,186 @@ $(document).ready(function () {
         let orderId = $(this).data("order-id");
         window.location.href = "orderDetails.html?order_id=" + orderId;
     });
+
+    //Add Payment
+    loadAdditionalPaymentMethods();
+
+    function loadAdditionalPaymentMethods() {
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/userServiceHandler.php",
+            cache: false,
+            data: { method: "getPaymentMethods" },
+            dataType: "json",
+            success: function (response) {
+                if (!response.success) return;
+
+                let container = $("#additionalPaymentMethodsList");
+                container.empty();
+
+                // Nur nicht-default anzeigen (default ist schon oben sichtbar)
+                let extras = response.data.filter(p => p.is_default == 0);
+
+                if (extras.length === 0) {
+                    container.html('<p class="text-muted small mb-0">No additional payment methods saved.</p>');
+                    return;
+                }
+
+                extras.forEach(function (pm, index) {
+                    let details = pm.method === 'creditcard'
+                        ? getMaskedCreditCardDisplay(pm.details)
+                        : '';
+                    let methodId = 'additionalPaymentMethod' + index;
+                    let detailsId = 'additionalPaymentDetails' + index;
+                    let cardColumnStyle = pm.method === 'creditcard' ? '' : ' style="display:none;"';
+
+                    container.append(`
+                        <div class="row mb-3 g-2 additional-payment-row">
+                            <div class="col-md-5">
+                                <label for="${methodId}" class="form-label">Additional Payment Method</label>
+                                <select class="form-select additional-payment-method" id="${methodId}" data-payment-id="${pm.id}" data-original-method="${pm.method}" disabled>
+                                    <option value="invoice" ${pm.method === 'invoice' ? 'selected' : ''}>Invoice</option>
+                                    <option value="creditcard" ${pm.method === 'creditcard' ? 'selected' : ''}>Credit Card</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5 additional-card-group"${cardColumnStyle}>
+                                <label for="${detailsId}" class="form-label">Credit Card Number</label>
+                                <input type="text" class="form-control additional-payment-details" id="${detailsId}" value="${escapeHtml(details)}" disabled>
+                            </div>
+                            <div class="col-auto d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-payment-method" data-payment-id="${pm.id}">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    `);
+                });
+            }
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    $("#btnAddPaymentMethod").click(function () {
+        $("#addPaymentMethodForm").show();
+        $("#btnAddPaymentMethod").hide();
+        $("#addPaymentMsg").hide();
+        $("#addPaymentMethodForm").find('input, select').prop('disabled', false);
+        $("#newPaymentMethodSelect").val('');
+        $("#newPaymentDetails").val('');
+        toggleNewCreditCardDisplay('');
+    });
+
+    $("#btnCancelNewPayment").click(function () {
+        $("#addPaymentMethodForm").hide();
+        $("#btnAddPaymentMethod").show();
+        $("#newPaymentMethodSelect").val('');
+        $("#newPaymentDetails").val('');
+        toggleNewCreditCardDisplay('');
+    });
+
+    $("#newPaymentMethodSelect").change(function () {
+        toggleNewCreditCardDisplay($(this).val());
+    });
+
+    $(document).on("change", ".additional-payment-method", function () {
+        toggleAdditionalCreditCardDisplay($(this));
+    });
+
+    $(document).on("click", ".btn-delete-payment-method", function () {
+        let paymentId = $(this).data("payment-id");
+
+        if (!confirm("Delete this payment method?")) {
+            return;
+        }
+
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/userServiceHandler.php",
+            cache: false,
+            data: {
+                method: "deletePaymentMethod",
+                paymentId: paymentId
+            },
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    showAddPaymentMsg(response.message, "success");
+                    loadAdditionalPaymentMethods();
+                } else {
+                    showAddPaymentMsg(response.message, "danger");
+                }
+            },
+            error: function () {
+                showAddPaymentMsg("Server error.", "danger");
+            }
+        });
+    });
+
+    function toggleNewCreditCardDisplay(method) {
+        if (method === "creditcard") {
+            $("#newCardDetailsGroup").show();
+            $("#newPaymentDetails")
+                .attr("placeholder", "Enter card number")
+                .prop('required', true);
+        } else {
+            $("#newCardDetailsGroup").hide();
+            $("#newPaymentDetails")
+                .prop('required', false)
+                .val('');
+        }
+    }
+
+    $("#btnSaveNewPayment").click(function () {
+        let method  = $("#newPaymentMethodSelect").val();
+        let details = $("#newPaymentDetails").val().trim();
+
+        if (!method) {
+            showAddPaymentMsg("Please select a payment method.", "danger");
+            return;
+        }
+        if (method === 'creditcard' && !details) {
+            showAddPaymentMsg("Please enter your card number.", "danger");
+            return;
+        }
+
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/userServiceHandler.php",
+            cache: false,
+            data: { method: "addPaymentMethod", paymentMethod: method, details: details },
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    showAddPaymentMsg(response.message, "success");
+                    loadAdditionalPaymentMethods();
+                    setTimeout(function () {
+                        $("#addPaymentMethodForm").hide();
+                        $("#btnAddPaymentMethod").show();
+                        $("#addPaymentMsg").hide();
+                    }, 1500);
+                } else {
+                    showAddPaymentMsg(response.message, "danger");
+                }
+            },
+            error: function () {
+                showAddPaymentMsg("Server error.", "danger");
+            }
+        });
+    });
+
+    function showAddPaymentMsg(text, type) {
+        $("#addPaymentMsg")
+            .text(text)
+            .removeClass("alert alert-danger alert-success")
+            .addClass("alert alert-" + type)
+            .show();
+    }
 });
