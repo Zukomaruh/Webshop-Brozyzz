@@ -30,6 +30,12 @@ class UserLogic {
                  return $this->userDataHandler->toggleCustomerStatus($data);
             case "getUserDetailsForAdmin":
                  return $this->userDataHandler->getUserDetailsForAdmin($data);
+            case "getPaymentMethods":
+                return $this->userDataHandler->getPaymentMethods();
+            case "addPaymentMethod":
+                return $this->userDataHandler->addPaymentMethod($data);
+            case "deletePaymentMethod":
+                return $this->userDataHandler->deletePaymentMethod($data);
             default:
                 return ["success" => false, "message" => "Method not allowed"];
         }

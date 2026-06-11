@@ -321,6 +321,11 @@ class UserDataHandler {
             }
 
             if ($stmt->execute()) {
+                $additionalUpdateResult = $this->updateAdditionalPaymentMethods($userData);
+                if (!$additionalUpdateResult['success']) {
+                    return $additionalUpdateResult;
+                }
+
                 $_SESSION['firstname'] = $userData['firstName'];
                 return ["success" => true, "message" => "Profile updated successfully!"];
             }
@@ -332,6 +337,133 @@ class UserDataHandler {
         }
 
         return ["success" => false, "message" => "Failed to update profile."];
+    }
+
+    private function updateAdditionalPaymentMethods($userData) {
+        if (!isset($userData['additionalPaymentMethods']) || !is_array($userData['additionalPaymentMethods'])) {
+            return ["success" => true];
+        }
+
+        $seenMethods = [];
+        foreach ($userData['additionalPaymentMethods'] as $paymentMethodData) {
+            $paymentId = (int)($paymentMethodData['id'] ?? 0);
+            $method = trim($paymentMethodData['paymentMethod'] ?? '');
+            $details = trim($paymentMethodData['details'] ?? '');
+
+            if ($paymentId <= 0 || !in_array($method, ['invoice', 'creditcard'], true)) {
+                return ["success" => false, "message" => "Invalid additional payment method."];
+            }
+
+            $currentStmt = $this->db->prepare(
+                "SELECT method, details FROM payment_methods WHERE id = :id AND user_id = :uid"
+            );
+            $currentStmt->execute([
+                ':id' => $paymentId,
+                ':uid' => $_SESSION['user_id'],
+            ]);
+            $currentPaymentMethod = $currentStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$currentPaymentMethod) {
+                return ["success" => false, "message" => "Additional payment method not found."];
+            }
+
+            $finalDetails = null;
+            if ($method === 'creditcard') {
+                if ($details === '' || $details === '****') {
+                    $finalDetails = $currentPaymentMethod['method'] === 'creditcard'
+                        ? $currentPaymentMethod['details']
+                        : null;
+                } else {
+                    $finalDetails = $details;
+                }
+
+                if (empty($finalDetails)) {
+                    return ["success" => false, "message" => "Please enter your credit card number."];
+                }
+            }
+
+            $duplicateKey = $this->getPaymentMethodDuplicateKey($method, $finalDetails);
+            if (isset($seenMethods[$duplicateKey])) {
+                return ["success" => false, "message" => "This payment method already exists on your account."];
+            }
+            $seenMethods[$duplicateKey] = true;
+
+            if ($this->paymentMethodExists($_SESSION['user_id'], $method, $finalDetails, $paymentId)) {
+                return ["success" => false, "message" => "This payment method already exists on your account."];
+            }
+            if ($this->defaultPaymentMethodExists($_SESSION['user_id'], $method, $finalDetails)) {
+                return ["success" => false, "message" => "This payment method already exists on your account."];
+            }
+
+            $updateStmt = $this->db->prepare(
+                "UPDATE payment_methods 
+                 SET method = :method, details = :details
+                 WHERE id = :id AND user_id = :uid"
+            );
+            $updateStmt->execute([
+                ':method' => $method,
+                ':details' => $finalDetails,
+                ':id' => $paymentId,
+                ':uid' => $_SESSION['user_id'],
+            ]);
+        }
+
+        return ["success" => true];
+    }
+
+    private function normalizePaymentDetails($method, $details) {
+        if ($method !== 'creditcard') {
+            return null;
+        }
+
+        return preg_replace('/\s+/', '', trim($details ?? ''));
+    }
+
+    private function getPaymentMethodDuplicateKey($method, $details) {
+        return $method . ':' . ($this->normalizePaymentDetails($method, $details) ?? '');
+    }
+
+    private function paymentMethodExists($userId, $method, $details, $excludePaymentId = null) {
+        $normalizedDetails = $this->normalizePaymentDetails($method, $details);
+        $sql = "SELECT id, details FROM payment_methods
+                WHERE user_id = :uid
+                  AND method = :method";
+
+        $params = [
+            ':uid' => $userId,
+            ':method' => $method,
+        ];
+
+        if ($excludePaymentId !== null) {
+            $sql .= " AND id != :exclude_id";
+            $params[':exclude_id'] = $excludePaymentId;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $paymentMethod) {
+            if ($this->normalizePaymentDetails($method, $paymentMethod['details']) === $normalizedDetails) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function defaultPaymentMethodExists($userId, $method, $details) {
+        $normalizedDetails = $this->normalizePaymentDetails($method, $details);
+        $stmt = $this->db->prepare(
+            "SELECT payment_method, payment_details FROM users WHERE user_id = :uid"
+        );
+        $stmt->execute([':uid' => $userId]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user || $user['payment_method'] !== $method) {
+            return false;
+        }
+
+        return $this->normalizePaymentDetails($method, $user['payment_details']) === $normalizedDetails;
     }
 
     private function createRememberToken($userId) {
@@ -483,6 +615,106 @@ class UserDataHandler {
 
             } catch (PDOException $e) {
                 return ["success" => false, "message" => "Database error: " . $e->getMessage()];
+            }
+        }
+
+        //Get all methods of current user
+        public function getPaymentMethods() {
+            if (session_status() == PHP_SESSION_NONE) { session_start(); }
+            if (!isset($_SESSION['user_id'])) {
+                return ["success" => false, "message" => "Unauthorized."];
+            }
+            try {
+                $stmt = $this->db->prepare(
+                    "SELECT id, method, details, is_default 
+                 FROM payment_methods 
+                 WHERE user_id = :uid 
+                 ORDER BY is_default DESC"
+                );
+                $stmt->execute([':uid' => $_SESSION['user_id']]);
+                $paymentMethods = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($paymentMethods as &$paymentMethod) {
+                    if ($paymentMethod['method'] === 'creditcard') {
+                        $paymentMethod['details'] = '****';
+                    }
+                }
+                unset($paymentMethod);
+
+                return ["success" => true, "data" => $paymentMethods];
+            } catch (PDOException $e) {
+                return ["success" => false, "message" => "DB Error: " . $e->getMessage()];
+            }
+        }
+
+        //Add Payment Methods to Database
+        public function addPaymentMethod($data) {
+            if (session_status() == PHP_SESSION_NONE) { session_start(); }
+            if (!isset($_SESSION['user_id'])) {
+                return ["success" => false, "message" => "Unauthorized."];
+            }
+
+            $method  = trim($data['paymentMethod']  ?? '');
+            $details = trim($data['details'] ?? '');
+
+            if (empty($method)) {
+                return ["success" => false, "message" => "Please select a payment method."];
+            }
+            if ($method === 'creditcard' && empty($details)) {
+                return ["success" => false, "message" => "Please enter your credit card number."];
+            }
+
+            try {
+                $normalizedDetails = $this->normalizePaymentDetails($method, $details);
+                if (
+                    $this->paymentMethodExists($_SESSION['user_id'], $method, $normalizedDetails) ||
+                    $this->defaultPaymentMethodExists($_SESSION['user_id'], $method, $normalizedDetails)
+                ) {
+                    return ["success" => false, "message" => "This payment method already exists on your account."];
+                }
+
+                $stmt = $this->db->prepare(
+                    "INSERT INTO payment_methods (user_id, method, details, is_default) 
+                 VALUES (:uid, :method, :details, 0)"
+                );
+                $stmt->execute([
+                    ':uid'     => $_SESSION['user_id'],
+                    ':method'  => $method,
+                    ':details' => $normalizedDetails,
+                ]);
+                return ["success" => true, "message" => "Payment method added successfully!"];
+            } catch (PDOException $e) {
+                return ["success" => false, "message" => "DB Error: " . $e->getMessage()];
+            }
+        }
+
+        public function deletePaymentMethod($data) {
+            if (session_status() == PHP_SESSION_NONE) { session_start(); }
+            if (!isset($_SESSION['user_id'])) {
+                return ["success" => false, "message" => "Unauthorized."];
+            }
+
+            $paymentId = (int)($data['paymentId'] ?? 0);
+            if ($paymentId <= 0) {
+                return ["success" => false, "message" => "Missing payment method."];
+            }
+
+            try {
+                $stmt = $this->db->prepare(
+                    "DELETE FROM payment_methods 
+                     WHERE id = :id AND user_id = :uid AND is_default = 0"
+                );
+                $stmt->execute([
+                    ':id' => $paymentId,
+                    ':uid' => $_SESSION['user_id'],
+                ]);
+
+                if ($stmt->rowCount() === 0) {
+                    return ["success" => false, "message" => "Payment method could not be deleted."];
+                }
+
+                return ["success" => true, "message" => "Payment method deleted successfully."];
+            } catch (PDOException $e) {
+                return ["success" => false, "message" => "DB Error: " . $e->getMessage()];
             }
         }
 }
