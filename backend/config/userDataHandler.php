@@ -215,6 +215,38 @@ class UserDataHandler {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function getCheckoutPaymentMethod($userId, $paymentMethodId) {
+        if ($paymentMethodId === null || $paymentMethodId === '' || $paymentMethodId === 'default') {
+            $user = $this->getUserById($userId);
+            if (!$user) {
+                return null;
+            }
+
+            return [
+                'id' => 'default',
+                'method' => $user['payment_method'],
+                'details' => $user['payment_details'],
+            ];
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT id, method, details
+             FROM payment_methods
+             WHERE id = :id AND user_id = :uid"
+        );
+        $stmt->execute([
+            ':id' => (int)$paymentMethodId,
+            ':uid' => $userId,
+        ]);
+
+        $paymentMethod = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$paymentMethod) {
+            return null;
+        }
+
+        return $paymentMethod;
+    }
+
     //Diese Methode holt speziell für den Admin alle nötigen Modal-Daten eines Users (ohne Passwort)
     public function getUserDetailsForAdmin($data) {
         if (session_status() == PHP_SESSION_NONE) { session_start(); }

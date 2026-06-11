@@ -51,8 +51,17 @@ class OrderLogic
 
         $userId = $_SESSION['user_id'];
 
-        // Check 3: ob User-Daten & Zahlungsmethode Vollständig hinterlegt wurden
+        // Check 3: ob User-Daten & gewählte Zahlungsmethode vollständig hinterlegt wurden
         $user = $this->userDataHandler->getUserById($userId);
+        $selectedPaymentMethod = $this->userDataHandler->getCheckoutPaymentMethod(
+            $userId,
+            $data['paymentMethodId'] ?? 'default'
+        );
+
+        if (!$selectedPaymentMethod) {
+            return ["error" => "invalid_payment_method"];
+        }
+
         //fragt fehlende INformation ab
         $missingFields = [];
         if (empty($user['firstname'])) $missingFields[] = "First name";
@@ -61,8 +70,8 @@ class OrderLogic
         if (empty($user['address'])) $missingFields[] = "Address";
         if (empty($user['zip'])) $missingFields[] = "ZIP code";
         if (empty($user['city'])) $missingFields[] = "City";
-        if (empty($user['payment_method'])) $missingFields[] = "Payment method";
-        if ($user['payment_method'] === 'creditcard' && empty($user['payment_details'])) {
+        if (empty($selectedPaymentMethod['method'])) $missingFields[] = "Payment method";
+        if ($selectedPaymentMethod['method'] === 'creditcard' && empty($selectedPaymentMethod['details'])) {
             $missingFields[] = "Credit card details";
         }
         if (!empty($missingFields)) {
@@ -105,7 +114,9 @@ class OrderLogic
         $shippingAddress = json_encode([
             'address' => $user['address'],
             'zip'     => $user['zip'],
-            'city'    => $user['city']
+            'city'    => $user['city'],
+            'payment_method' => $selectedPaymentMethod['method'],
+            'payment_details' => $selectedPaymentMethod['method'] === 'creditcard' ? '****' : null
         ]);
 
         try {
