@@ -573,4 +573,146 @@ $(document).ready(function () {
         });
     });
 
+    //GUTSCHEINE VERWALTEN
+
+    // Switch zu Voucher Management View
+    $("#btnShowVoucherManagement").click(function () {
+        $("#voucherManagementView").show();
+        $("#productListView").hide();
+        $("#addProductView").hide();
+        $("#customerListView").hide();
+        $("#customerOrdersView").hide();
+
+        $("#btnShowVoucherManagement").addClass("btn-primary").removeClass("btn-outline-primary");
+        $("#btnShowProductList").addClass("btn-outline-primary").removeClass("btn-primary");
+        $("#btnShowAddProduct").addClass("btn-outline-primary").removeClass("btn-primary");
+        $("#btnShowCustomerList").addClass("btn-outline-primary").removeClass("btn-primary");
+
+        resetVoucherForm();
+        loadVouchers();
+    });
+
+    // Erweitere die bestehenden drei Nav-Buttons, damit sie die Gutschein-View verstecken:
+    $("#btnShowProductList, #btnShowAddProduct, #btnShowCustomerList, #btnBackToCustomerList").click(function() {
+        $("#voucherManagementView").hide();
+        $("#btnShowVoucherManagement").addClass("btn-outline-primary").removeClass("btn-primary");
+    });
+
+    // Code-Generierung via Backend (inklusive automatischer Datumsberechnung)
+    $("#btnGenerateCode").click(function () {
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/voucherServiceHandler.php",
+            data: { method: "generateUniqueCode" },
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    $("#voucherCodeInput").val(response.code);
+
+                    // Datumsfelder befüllen (Zentral aus Backend geholt, um Asynchronität zu vermeiden)
+                    $("#voucherStart").val(response.created_at);
+                    $("#voucherExpiry").val(response.expires_at);
+
+                    // Button zum Erstellen freigeben
+                    $("#btnCreateVoucher").prop("disabled", false);
+                    $("#voucherMessage").text("");
+                } else {
+                    $("#voucherMessage").text(response.message).css("color", "red");
+                }
+            },
+            error: function (xhr) {
+                console.error("Error generating code:", xhr.responseText);
+                $("#voucherMessage").text("Server Error generating code.").css("color", "red");
+            }
+        });
+    });
+
+    // Gutschein absenden & anlegen
+    $("#createVoucherForm").submit(function (e) {
+        e.preventDefault();
+
+        let formData = {
+            method: "createVoucher",
+            code: $("#voucherCodeInput").val(),
+            initial_value: $("#voucherValue").val(),
+            created_at: $("#voucherStart").val(),
+            expires_at: $("#voucherExpiry").val()
+        };
+
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/voucherServiceHandler.php",
+            data: formData,
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    $("#voucherMessage").text(response.message).css("color", "green");
+                    resetVoucherForm();
+                    loadVouchers(); // Tabelle aktualisieren
+                } else {
+                   $("#voucherMessage").text(response.message).css("color", "red");
+                }
+            },
+            error: function (xhr) {
+                console.error("Error creating voucher:", xhr.responseText);
+                $("#voucherMessage").text("Server Error when creating voucher.").css("color", "red");
+            }
+        });
+    });
+
+    // Gutscheine aus der DB laden und auflisten
+    function loadVouchers() {
+        $.ajax({
+            type: "POST",
+            url: "../../backend/services/voucherServiceHandler.php",
+            data: { method: "getAllVouchers" },
+            dataType: "json",
+            success: function (response) {
+                if (response.success) {
+                    $("#voucherTableBody").empty();
+
+                    response.data.forEach(function (voucher) {
+                        let statusBadge = "";
+
+                        // Status ermitteln (Aktuell ist das Jahr 2026)
+                        let expiryDate = new Date(voucher.expires_at);
+                        let now = new Date();
+
+                        if (parseInt(voucher.is_redeemed) === 1) {
+                            statusBadge = `<span class="badge bg-secondary">Redeemed</span>`;
+                        } else if (expiryDate < now) {
+                            statusBadge = `<span class="badge bg-danger">Expired</span>`;
+                        } else {
+                            statusBadge = `<span class="badge bg-success">Active</span>`;
+                        }
+
+                        let value = parseFloat(voucher.initial_value).toFixed(2);
+
+                        let row = `
+                            <tr>
+                                <td><code class="fw-bold text-dark fs-6">${voucher.code}</code></td>
+                                <td>${value} €</td>
+                                <td>${OrderUtils.formatOrderDate(voucher.created_at, false)}</td>
+                                <td>${OrderUtils.formatOrderDate(voucher.expires_at, false)}</td>
+                                <td>${statusBadge}</td>
+                            </tr>
+                        `;
+                        $("#voucherTableBody").append(row);
+                    });
+                } else {
+                    console.error("Could not load vouchers:", response.message);
+                }
+            },
+            error: function (xhr) {
+                console.error("Error loading vouchers:", xhr.responseText);
+            }
+        });
+    }
+
+    // Hilfsfunktion zum Leeren der Maske
+    function resetVoucherForm() {
+        $("#createVoucherForm")[0].reset();
+        $("#btnCreateVoucher").prop("disabled", true);
+    }
+
 });
