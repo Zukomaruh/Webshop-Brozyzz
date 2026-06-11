@@ -2,7 +2,7 @@
 require_once "../config/orderDataHandler.php";
 require_once "../config/productDataHandler.php";
 require_once "../config/userDataHandler.php";
-require_once "../config/voucherDataHandler.php"; // Zugriff auf die Gutscheine
+require_once "../config/voucherDataHandler.php"; // NEU: Zugriff auf die Gutscheine
 
 class OrderLogic
 {
@@ -51,7 +51,7 @@ class OrderLogic
 
         $userId = $_SESSION['user_id'];
 
-        // Check 3: Vollständigkeit der User-Daten & Zahlungsmethode
+        // Check 3: Volllständigkeit der User-Daten & Zahlungsmethode
         $user = $this->userDataHandler->getUserById($userId);
         $selectedPaymentMethod = $this->userDataHandler->getCheckoutPaymentMethod(
             $userId,
@@ -82,7 +82,7 @@ class OrderLogic
 
         // Produkte laden und reine numerische Beträge berechnen
         $items = [];
-        $subtotalNum = 0.0; // Korrigiert auf sauberen Float-Wert
+        $subtotalNum = 0.0; // Float-Basis für fehlerfreie Berechnung
 
         foreach ($_SESSION['cart'] as $productId => $quantity) {
             $product = $this->productDataHandler->getProductById($productId);
@@ -100,44 +100,61 @@ class OrderLogic
             ];
         }
 
-        // Gutschein-Logik einbinden und vorab prüfen
+        // Vorab das bestehende User-Guthaben aus der DB holen, falls vorhanden
+        $userBalanceNum = isset($user['balance']) ? (float)$user['balance'] : 0.0;
+
+        // NEU: Gutschein-Logik einbinden und live gegenrechnen
         $couponCode = null;
-        $discountAmountNum = 0.0;
+        $voucherDiscountNum = 0.0;
+
+        // Das Feld 'voucherCode' kommt exakt so aus deiner basket.js via AJAX an
         $voucherCode = $data['voucherCode'] ?? null;
-        $voucherDataHandler = new VoucherDataHandler(); // Weiter oben instanziiert für besseren Scope
 
         if (!empty($voucherCode)) {
+            $voucherDataHandler = new VoucherDataHandler();
             $voucherCheck = $voucherDataHandler->verifyAndGetVoucher($voucherCode);
 
             if ($voucherCheck['success']) {
                 $couponCode = strtoupper($voucherCode);
-                $discountAmountNum = (float)$voucherCheck['value'];
+                $voucherDiscountNum = (float)$voucherCheck['value'];
             } else {
+                // Sicherheits-Fallback: Falls der Gutschein manipuliert wurde oder abgelaufen ist
                 return ["error" => "invalid_voucher", "message" => $voucherCheck['message']];
             }
         }
 
-        // Endsumme berechnen (Darf nicht unter 0 € fallen)
-        $totalNum = max(0.0, $subtotalNum - $discountAmountNum);
+        // --- SCHRITT-FÜR-SCHRITT VERRECHNUNG ---
 
-        // NEU: Restguthaben berechnen, falls der Gutschein mehr wert ist als der Einkauf
-        $leftoverBalanceNum = 0.0;
-        if (!empty($couponCode) && $discountAmountNum > $subtotalNum) {
-            $leftoverBalanceNum = $discountAmountNum - $subtotalNum;
+        // 1. Erst den neuen Gutschein von der Zwischensumme abziehen
+        $remainingAfterVoucher = max(0.0, $subtotalNum - $voucherDiscountNum);
 
-            // Der auf der Rechnung ausgewiesene Rabatt entspricht in diesem Fall
-            // exakt dem Einkaufswert, da die Endsumme 0,00€ beträgt.
-            $discountAmountNum = $subtotalNum;
+        // Wenn der neue Gutschein mehr wert war als der Einkauf -> Überschuss für die spätere Aufbuchung merken
+        $leftoverVoucherBalanceNum = 0.0;
+        if (!empty($couponCode) && $voucherDiscountNum > $subtotalNum) {
+            $leftoverVoucherBalanceNum = $voucherDiscountNum - $subtotalNum;
+            $voucherDiscountNum = $subtotalNum; // Für die Rechnung auf den Einkaufswert deckeln
         }
 
-        // MwSt. (VAT) berechnen basierend auf der tatsächlichen Endsumme
+        // 2. Jetzt das alte, existierende Kunden-Guthaben automatisch auf den Restbetrag anrechnen
+        $balanceToUseNum = 0.0;
+        if ($remainingAfterVoucher > 0.0 && $userBalanceNum > 0.0) {
+            $balanceToUseNum = min($remainingAfterVoucher, $userBalanceNum);
+        }
+
+        // Endsumme berechnen (Darf nicht unter 0 € fallen)
+        $totalNum = max(0.0, $remainingAfterVoucher - $balanceToUseNum);
+
+        // Der Gesamtrabatt auf der Rechnung setzt sich aus neuem Gutschein + genutztem Guthaben zusammen
+        $totalDiscountNum = $voucherDiscountNum + $balanceToUseNum;
+
+        // MwSt. (VAT) berechnen basierend auf der tatsächlichen Endsumme (analog zu removeOrderItem)
         $taxAmountNum = $totalNum * 20 / 120;
 
         // Erst HIER werden alle Werte final für die DB formatiert
         $subtotal = number_format($subtotalNum, 2, '.', '');
         $taxAmount = number_format($taxAmountNum, 2, '.', '');
         $total = number_format($totalNum, 2, '.', '');
-        $discountAmount = number_format($discountAmountNum, 2, '.', '');
+        $discountAmount = number_format($totalDiscountNum, 2, '.', '');
 
         $shippingAddress = json_encode([
             'address' => $user['address'],
@@ -157,14 +174,20 @@ class OrderLogic
             // Posten der Bestellung anlegen
             $this->orderDataHandler->createOrderItems($orderId, $items);
 
-            // Wenn ein gültiger Gutschein genutzt wurde, diesen jetzt entwerten
+            // NEU: Wenn ein gültiger Gutschein genutzt wurde, diesen jetzt entwerten
             if (!empty($couponCode)) {
                 $voucherDataHandler->markAsRedeemed($couponCode);
             }
 
-            // NEU: Wenn ein Restguthaben übrig ist, buchen wir es dem Userkonto auf
-            if ($leftoverBalanceNum > 0) {
-                $this->userDataHandler->addToUserBalance($userId, $leftoverBalanceNum);
+            // GUTHABEN-KONTO AKTUALISIEREN:
+            // Wenn altes Guthaben verbraucht wurde -> vom Userkonto abziehen
+            if ($balanceToUseNum > 0.0) {
+                $this->userDataHandler->deductUserBalance($userId, $balanceToUseNum);
+            }
+
+            // Wenn der neue Gutschein Überschuss erzeugt hat -> dem Userkonto gutschreiben
+            if ($leftoverVoucherBalanceNum > 0.0) {
+                $this->userDataHandler->addToUserBalance($userId, $leftoverVoucherBalanceNum);
             }
 
             // Warenkorb leeren

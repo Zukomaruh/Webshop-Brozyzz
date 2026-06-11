@@ -152,7 +152,7 @@ $(document).ready(function () {
         `);
 
             fillCheckoutPaymentMethods(user, paymentMethodsRes.success ? paymentMethodsRes.data : []);
-            fillCheckoutCartSummary();
+            fillCheckoutCartSummary(user);
 
             let modal = new bootstrap.Modal(document.getElementById("checkoutModal"));
             modal.show();
@@ -195,8 +195,7 @@ $(document).ready(function () {
         return "Invoice";
     }
 
-    // ERWEITERT: Berücksichtigt den Gutschein-Abzug im Bestätigungs-Modal
-    function fillCheckoutCartSummary() {
+    function fillCheckoutCartSummary(user) {
         let cartBody = $("#modalCartItems");
         let cartFoot = $("#modalCartTotal");
         cartBody.empty();
@@ -208,7 +207,7 @@ $(document).ready(function () {
             if (cols.length >= 4) {
                 let name = $(cols[0]).text();
                 let sum = $(cols[3]).text();
-                // Verhindert das Miteinberechnen von Altsummen-Zeilen im DOM-Parsing
+
                 if(!name.includes("Voucher Discount") && !name.includes("Total:")) {
                     total += parseFloat(sum);
                     cartBody.append(`
@@ -221,6 +220,7 @@ $(document).ready(function () {
             }
         });
 
+        // 1. Zuerst eventuellen Gutscheincode abziehen
         if (appliedVoucher) {
             cartBody.append(`
                 <tr class="text-danger fw-bold">
@@ -231,17 +231,28 @@ $(document).ready(function () {
             total = Math.max(0, total - appliedVoucher.value);
         }
 
+        // 2. JETZT NEU: Das User-Guthaben live im Fenster gegenrechnen und anzeigen
+        let userBalance = user && user.balance ? parseFloat(user.balance) : 0.0;
+        if (userBalance > 0 && total > 0) {
+            let balanceToUse = Math.min(total, userBalance);
+            cartBody.append(`
+                <tr class="text-success fw-bold">
+                    <td>Account Balance used</td>
+                    <td class="text-end">-${balanceToUse.toFixed(2)} €</td>
+                </tr>
+            `);
+            // Aktualisiere die Endsumme live (fällt auf 0, wenn genug Guthaben da ist)
+            total = Math.max(0, total - balanceToUse);
+        }
+
+        // 3. Finale Endsumme anzeigen
         cartFoot.append(`
-            <tr class="fw-bold">
-                <td>Total:</td>
+            <tr class="table-light fw-bold border-top border-dark">
+                <td>Total to pay:</td>
                 <td class="text-end">${total.toFixed(2)} €</td>
             </tr>
         `);
     }
-
-    $("#checkoutPaymentMethod").on("change", function () {
-        selectedCheckoutPaymentId = $(this).val();
-    });
 
     // ERWEITERT: Sendet den Gutscheincode beim Kaufabschluss ans Backend mit
     $("#btnConfirmOrder").on("click", function () {
