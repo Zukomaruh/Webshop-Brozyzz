@@ -15,11 +15,14 @@ $(document).ready(function () {
         loadProducts(selectedCategory);
     });
 
-    // Produkt in den Warenkorb legen
     $(document).on("click", ".btn-add-cart", function (event) {
         event.stopPropagation();
         let productId = $(this).data("id");
+        addToCart(productId);
+    });
 
+    //Die ausgelagerte Funktion (wird von Klick UND Drag verwendet)
+    function addToCart(productId) {
         $.ajax({
             type: "POST",
             url: "../backend/services/cartServiceHandler.php",
@@ -28,18 +31,19 @@ $(document).ready(function () {
                 productId: productId
             },
             dataType: "json",
-
             success: function () {
                 if (typeof window.refreshCartBadge === "function") {
                     window.refreshCartBadge();
                 }
+                // Optional: Visuelles Feedback am Warenkorb triggern
+                $("#nav-basket").addClass("bounce");
+                setTimeout(() => $("#nav-basket").removeClass("bounce"), 500);
             },
-
             error: function (xhr) {
                 console.error("Error when adding to basket:", xhr.responseText);
             }
         });
-    });
+    }
 
     $("#searchInput").on("input", function (event) {
         if ($(this).val() !== "") {
@@ -195,7 +199,7 @@ $(document).ready(function () {
 
             let productCard = `
                 <div class="col-md-4 mb-4">
-                    <div class="card h-100 product-card" data-id="${product.product_id}" style="cursor: pointer;">
+                    <div class="card h-100 product-card" data-id="${product.product_id}" style="cursor: pointer;" draggable="true">
                         <img src="${imageSrc}" class="card-img-top" alt="${escapeHtml(product.name)}">
 
                         <div class="card-body">
@@ -249,4 +253,45 @@ $(document).ready(function () {
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
     }
+
+    // ---- DRAG & DROP LOGIK ----
+
+    // Wenn der User anfängt, die Card zu ziehen
+    $(document).on("dragstart", ".product-card", function (event) {
+        let productId = $(this).data("id");
+        // Speichert die ID des Produkts im Drag-Event
+        event.originalEvent.dataTransfer.setData("text/plain", productId);
+
+        // Macht die Card während des Ziehens leicht transparent
+        $(this).css("opacity", "0.5");
+    });
+
+    // Wenn der Drag-Vorgang beendet wird (egal ob erfolgreich oder nicht)
+    $(document).on("dragend", ".product-card", function () {
+        $(this).css("opacity", "1.0");
+    });
+
+    // Erlaubt das Drüberziehen über den Basket-Button (Standard-Browser-Verhalten blockieren)
+    $(document).on("dragover", 'a[href*="basket.html"]', function (event) {
+        event.preventDefault();
+        // Visuelles Feedback: Button vergrößern und Schatten werfen
+        $(this).addClass("shadow").css("transform", "scale(1.08)");
+    });
+
+    // Wenn der User den Bereich des Basket-Buttons wieder verlässt
+    $(document).on("dragleave", 'a[href*="basket.html"]', function () {
+        $(this).removeClass("shadow").css("transform", "scale(1)");
+    });
+
+    // Wenn die Card auf dem Basket-Button losgelassen wird
+    $(document).on("drop", 'a[href*="basket.html"]', function (event) {
+        event.preventDefault();
+        $(this).removeClass("shadow").css("transform", "scale(1)");
+
+        // ID auslesen und das Produkt via AJAX hinzufügen
+        let productId = event.originalEvent.dataTransfer.getData("text/plain");
+        if (productId) {
+            addToCart(productId);
+        }
+    });
 });
