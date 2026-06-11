@@ -9,9 +9,9 @@ class VoucherDataHandler {
         $this->db = $dbAccess->getConnection();
     }
 
-    /**
-     * Würfelt einen 5-stelligen Code und stellt sicher, dass er UNIQUE ist
-     */
+
+    //Würfelt einen 5-stelligen Code und stellt sicher, dass er UNIQUE ist
+
     public function generateUniqueCode() {
         try {
             $codeIsUnique = false;
@@ -43,9 +43,9 @@ class VoucherDataHandler {
         }
     }
 
-    /**
-     * Erstellt den neuen Gutschein in der DB
-     */
+
+    //Erstellt den neuen Gutschein in der DB
+
     public function createVoucher($data) {
         $code = $data['code'] ?? '';
         $initialValue = $data['initial_value'] ?? 0;
@@ -75,9 +75,8 @@ class VoucherDataHandler {
         }
     }
 
-    /**
-     * Holt alle existierenden Gutscheine für den Admin ab
-     */
+    //Holt alle existierenden Gutscheine für den Admin ab
+
     public function getAllVouchers() {
         try {
             $stmt = $this->db->query("
@@ -90,6 +89,70 @@ class VoucherDataHandler {
             return ['success' => true, 'data' => $vouchers];
         } catch (PDOException $e) {
             return ['success' => false, 'message' => 'Database error fetching vouchers: ' . $e->getMessage()];
+        }
+    }
+
+
+     //Prüft einen Gutscheincode für den Kunden und gibt den Wert zurück
+
+    public function verifyAndGetVoucher($code) {
+        if (strlen($code) !== 5) {
+            return ['success' => false, 'message' => 'Invalid code format.'];
+        }
+
+        try {
+            // Gutschein aus der DB holen
+            $stmt = $this->db->prepare("
+                SELECT initial_value, is_redeemed, expires_at
+                FROM vouchers
+                WHERE code = :code
+            ");
+            $stmt->execute([':code' => strtoupper($code)]);
+            $voucher = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // 1. Existenzprüfung
+            if (!$voucher) {
+                return ['success' => false, 'message' => 'Voucher code does not exist.'];
+            }
+
+            // 2. Prüfen, ob bereits eingelöst
+            if ($voucher['is_redeemed'] == 1) {
+                return ['success' => false, 'message' => 'This voucher has already been used.'];
+            }
+
+            // 3. Prüfen, ob das Ablaufdatum überschritten ist
+            $currentDate = date('Y-m-d H:i:s');
+            if ($voucher['expires_at'] < $currentDate) {
+                return ['success' => false, 'message' => 'This voucher has expired.'];
+            }
+
+            // Wenn alle Prüfungen bestanden sind: Wert zurückgeben
+            return [
+                'success' => true,
+                'message' => 'Voucher applied successfully!',
+                'value' => (float)$voucher['initial_value']
+            ];
+
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
+        }
+    }
+
+
+    //Markiert einen Gutschein nach erfolgreicher Bestellung als eingelöst
+
+    public function markAsRedeemed($code) {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE vouchers
+                SET is_redeemed = 1
+                WHERE code = :code
+            ");
+            $stmt->execute([':code' => strtoupper($code)]);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Error disabling voucher: " . $e->getMessage());
+            return false;
         }
     }
 }
