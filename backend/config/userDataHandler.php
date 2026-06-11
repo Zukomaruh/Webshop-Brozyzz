@@ -749,4 +749,23 @@ class UserDataHandler {
                 return ["success" => false, "message" => "DB Error: " . $e->getMessage()];
             }
         }
+
+    //Schreibt ein Restguthaben auf das Konto des Users gut
+    public function addToUserBalance($userId, $amount) {
+         try {
+             // COALESCE sorgt dafür, dass falls die Balance NULL ist, mit 0 gerechnet wird
+             $stmt = $this->db->prepare("
+                 UPDATE users
+                 SET balance = COALESCE(balance, 0) + :amount
+                 WHERE user_id = :user_id
+             ");
+             return $stmt->execute([
+                 ':amount'  => $amount,
+                 ':user_id' => $userId
+             ]);
+         } catch (PDOException $e) {
+             error_log("Error updating user balance: " . $e->getMessage());
+             return false;
+         }
+    }
 }
