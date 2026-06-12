@@ -188,7 +188,7 @@ class UserDataHandler {
 
         try {
             // Passwort wird absichtlich exkludiert!
-            $sql = "SELECT firstname, lastname, gender, username, email, address, zip, city, payment_method, payment_details
+            $sql = "SELECT firstname, lastname, gender, username, email, address, zip, city, payment_method, payment_details, balance
                     FROM users
                     WHERE user_id = :uid";
 
@@ -207,12 +207,12 @@ class UserDataHandler {
     }
 
     public function getUserById($userId){
-        $stmt = $this->db->prepare("
-        SELECT firstname, lastname, email, address, zip, city, payment_method, payment_details
-        FROM users WHERE user_id = :uid
-    ");
-        $stmt->execute([':uid' => $userId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt = $this->db->prepare("
+            SELECT firstname, lastname, email, address, zip, city, payment_method, payment_details, balance
+            FROM users WHERE user_id = :uid
+        ");
+            $stmt->execute([':uid' => $userId]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getCheckoutPaymentMethod($userId, $paymentMethodId) {
@@ -749,4 +749,42 @@ class UserDataHandler {
                 return ["success" => false, "message" => "DB Error: " . $e->getMessage()];
             }
         }
+
+    //Schreibt ein Restguthaben auf das Konto des Users gut
+    public function addToUserBalance($userId, $amount) {
+         try {
+             // COALESCE sorgt dafür, dass falls die Balance NULL ist, mit 0 gerechnet wird
+             $stmt = $this->db->prepare("
+                 UPDATE users
+                 SET balance = COALESCE(balance, 0) + :amount
+                 WHERE user_id = :user_id
+             ");
+             return $stmt->execute([
+                 ':amount'  => $amount,
+                 ':user_id' => $userId
+             ]);
+         } catch (PDOException $e) {
+             error_log("Error updating user balance: " . $e->getMessage());
+             return false;
+         }
+    }
+
+    //NEU: Zieht einen genutzten Betrag vom Guthaben des Users ab
+
+    public function deductUserBalance($userId, $amount) {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE users
+                SET balance = COALESCE(balance, 0) - :amount
+                WHERE user_id = :user_id
+            ");
+            return $stmt->execute([
+                ':amount'  => $amount,
+                ':user_id' => $userId
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error deducting user balance: " . $e->getMessage());
+            return false;
+        }
+    }
 }

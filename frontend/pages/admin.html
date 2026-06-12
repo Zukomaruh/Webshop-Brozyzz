@@ -7,10 +7,11 @@
 </head>
 <body style="display:none;">
 <div class="container mt-2">
-    <h1 class="mb-4">Hallo Admin</h1>
+    <h1 class="mb-4">Hello Admin</h1>
     <button id="btnShowProductList" class="btn btn-primary">Product list</button>
     <button id="btnShowAddProduct" class="btn btn-outline-primary ms-2">Add product</button>
     <button id="btnShowCustomerList" class="btn btn-outline-primary ms-2">Customer list</button>
+    <button id="btnShowVoucherManagement" class="btn btn-outline-primary ms-2">Manage Vouchers</button>
 </div>
 
 <div id="addProductView" class="container mt-2" style="display:none;">
@@ -201,6 +202,56 @@
             </div>
         </div>
     </div>
+</div>
+
+<div id="voucherManagementView" class="container mt-2" style="display:none;">
+    <div class="alert alert-info">Here you can generate 5-digit vouchers and monitor their statuses.</div>
+
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+            <h3 class="mb-4">Create Voucher</h3>
+            <form id="createVoucherForm">
+                <div class="row align-items-end">
+                    <div class="col-md-4 mb-3">
+                        <label for="voucherCodeInput" class="form-label">Voucher Code</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control fw-bold text-uppercase text-center" id="voucherCodeInput" name="code" readonly placeholder="Click Generate" required>
+                            <button class="btn btn-dark" type="button" id="btnGenerateCode">Generate Code</button>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="voucherValue" class="form-label">Value (€)</label>
+                        <input type="number" class="form-control" id="voucherValue" name="initial_value" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="voucherStart" class="form-label">Start Date</label>
+                        <input type="text" class="form-control" id="voucherStart" name="created_at" readonly>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="voucherExpiry" class="form-label">Expiry Date (5 Years)</label>
+                        <input type="text" class="form-control" id="voucherExpiry" name="expires_at" readonly>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-2" id="btnCreateVoucher" disabled>Create Voucher</button>
+            </form>
+            <div id="voucherMessage" class="mt-3 text-center"></div>
+        </div>
+    </div>
+
+    <h3 class="mb-3">Existing Vouchers</h3>
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-dark">
+        <tr>
+            <th>Code</th>
+            <th>Initial Value</th>
+            <th>Start Date</th>
+            <th>Expiry Date</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody id="voucherTableBody">
+        </tbody>
+    </table>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
