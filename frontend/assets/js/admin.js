@@ -241,6 +241,11 @@ $(document).ready(function () {
                     $("#modalAddress").text(customer.address);
                     $("#modalCityZip").text(`${customer.zip} ${customer.city}`);
                     $("#modalPaymentMethod").text(customer.payment_method ? customer.payment_method.toUpperCase() : "N/A");
+                    if (customer.balance !== undefined && customer.balance !== null) {
+                            $("#modalBalance").text(parseFloat(customer.balance).toFixed(2) + " €");
+                        } else {
+                            $("#modalBalance").text("0.00 €");
+                        }
 
                     // REPARIERT: Nativer Bootstrap 5 Aufruf (umgeht den jQuery-Plugin-Fehler)
                     let modalElement = document.getElementById('customerDetailModal');
