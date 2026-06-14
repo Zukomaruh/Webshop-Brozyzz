@@ -31,9 +31,9 @@ class OrderDataHandler {
 
     public function createOrderItems($orderId, $items) {
         $stmt = $this->db->prepare("
-            INSERT INTO order_items 
+            INSERT INTO order_items
                 (order_id, product_id, product_name, quantity, unit_price, total)
-            VALUES 
+            VALUES
                 (:order_id, :product_id, :product_name, :quantity, :unit_price, :total)
         ");
         foreach ($items as $item) {
@@ -72,8 +72,9 @@ class OrderDataHandler {
         $order = $this->db->prepare("SELECT orders.*, users.firstname, users.lastname, users.gender FROM orders JOIN users ON orders.user_id = users.user_id WHERE orders.id = :order_id");
         $order->execute([':order_id' => $order_id]);
         $order = $order->fetch(PDO::FETCH_ASSOC);
-        //get products
-        $items = $this->db->prepare("SELECT id AS order_item_id, order_id, product_id, product_name, quantity, unit_price, total FROM order_items WHERE order_id = :order_id");
+
+        // REPARIERT: Alias für total gesetzt, um JavaScript-Kollision zu verhindern
+        $items = $this->db->prepare("SELECT id AS order_item_id, order_id, product_id, product_name, quantity, unit_price, total AS item_total FROM order_items WHERE order_id = :order_id");
         $items->execute([':order_id' => $order_id]);
         $items = $items->fetchAll(PDO::FETCH_ASSOC);
         return [
