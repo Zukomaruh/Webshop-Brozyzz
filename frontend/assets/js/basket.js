@@ -1,10 +1,16 @@
 $(document).ready(function () {
+    // Merkt sich die ID der ausgewählten Zahlungsart im Checkout-Modal
     let selectedCheckoutPaymentId = "default";
-    // NEU: Globale Variable für den aktivierten Gutschein im Frontend-State
-    let appliedVoucher = null;
 
+    // Beim Laden der Seite sofort den Warenkorb anzeigen
     loadBasket();
 
+    // Sorgt dafür, dass die Auswahl des Users tatsächlich in der Variable gespeichert wird!
+    $(document).on("change", "#checkoutPaymentMethod", function () {
+        selectedCheckoutPaymentId = $(this).val();
+    });
+
+    // Lädt die Produkte aus der Session/DB und rendert die Haupttabelle
     function loadBasket() {
         $.ajax({
             type: "GET",
@@ -19,13 +25,13 @@ $(document).ready(function () {
 
                 if (items.length === 0) {
                     body.append('<tr><td colspan="5" class="text-center">Your basket is empty.</td></tr>');
-                    // Falls der Korb leer wird, Gutschein-Eingabe resetten
                     resetVoucherUI();
                     return;
                 }
 
                 let totalCartSum = 0;
 
+                // Produkte durchgehen und Zeilen generieren
                 items.forEach(item => {
                     let itemTotal = item.price * item.quantity;
                     totalCartSum += itemTotal;
@@ -52,37 +58,18 @@ $(document).ready(function () {
                     body.append(row);
                 });
 
-                // ERWEITERT: Berechnung & Anzeige des Gutschein-Rabatts in der Tabelle
-                if (appliedVoucher) {
-                    foot.append(`
-                        <tr>
-                            <td colspan="3" class="text-end text-muted">Voucher Discount (${appliedVoucher.code}):</td>
-                            <td colspan="2" class="text-danger fw-bold">-${appliedVoucher.value.toFixed(2)} €</td>
-                        </tr>
-                    `);
-
-                    // Verhindert negative Endsummen
-                    let finalTotal = Math.max(0, totalCartSum - appliedVoucher.value);
-
-                    foot.append(`
-                        <tr class="table-dark">
-                            <td colspan="3" class="text-end fw-bold">Total:</td>
-                            <td colspan="2" class="fw-bold">${finalTotal.toFixed(2)} €</td>
-                        </tr>
-                    `);
-                } else {
-                    foot.append(`
-                        <tr class="table-dark">
-                            <td colspan="3" class="text-end fw-bold">Total:</td>
-                            <td colspan="2" class="fw-bold">${totalCartSum.toFixed(2)} €</td>
-                        </tr>
-                    `);
-                }
+                // Das Rendern ist jetzt LEAN: Keine Gutschein-Berechnungen mehr in der Tabelle!
+                foot.append(`
+                    <tr class="table-dark">
+                        <td colspan="3" class="text-end fw-bold">Total:</td>
+                        <td colspan="2" class="fw-bold">${totalCartSum.toFixed(2)} €</td>
+                    </tr>
+                `);
             }
         });
     }
 
-    // Event: Menge ändern (+ oder -)
+    // Event: Menge im Warenkorb erhöhen/verringern (+ / -)
     $(document).on("click", ".btn-change", function () {
         let id = $(this).data("id");
         let delta = $(this).data("delta");
@@ -94,13 +81,13 @@ $(document).ready(function () {
             success: function () {
                 loadBasket();
                 if (typeof window.refreshCartBadge === "function") {
-                    window.refreshCartBadge();
+                    window.refreshCharBadge();
                 }
             }
         });
     });
 
-    // Event: Produkt komplett löschen
+    // Event: Produkt komplett aus dem Korb kicken
     $(document).on("click", ".btn-remove", function () {
         if (confirm("Produkt wirklich aus dem Warenkorb entfernen?")) {
             let id = $(this).data("id");
@@ -118,6 +105,7 @@ $(document).ready(function () {
         }
     });
 
+    // Klick auf "Checkout" -> Profildaten und Zahlungsmethoden parallel laden
     $("#btnCheckout").on("click", function () {
         let userRequest = $.ajax({
             type: "POST",
@@ -138,31 +126,29 @@ $(document).ready(function () {
             let paymentMethodsRes = paymentMethodsResult[0];
 
             if (!userRes.success) {
-                $("#checkoutMsg").html(`
-                <div class="alert alert-warning">Please log in to place an order.</div>
-            `);
+                $("#checkoutMsg").html(`<div class="alert alert-warning">Please log in to place an order.</div>`);
                 return;
             }
 
             let user = userRes.data;
 
+            // Lieferadresse im Modal anzeigen
             $("#modalUserInfo").html(`
-            <strong>${user.firstname} ${user.lastname}</strong><br>
-            ${user.address}, ${user.zip} ${user.city}
-        `);
+                <strong>${user.firstname} ${user.lastname}</strong><br>
+                ${user.address}, ${user.zip} ${user.city}
+            `);
 
             fillCheckoutPaymentMethods(user, paymentMethodsRes.success ? paymentMethodsRes.data : []);
-            fillCheckoutCartSummary(user);
+            fillCheckoutCartSummary(user); // Hier wird das Kontoguthaben live verrechnet!
 
             let modal = new bootstrap.Modal(document.getElementById("checkoutModal"));
             modal.show();
         }).fail(function () {
-            $("#checkoutMsg").html(`
-            <div class="alert alert-danger">Error loading checkout data.</div>
-        `);
+            $("#checkoutMsg").html(`<div class="alert alert-danger">Error loading checkout data.</div>`);
         });
     });
 
+    // Befüllt das Dropdown-Menü im Modal mit den Zahlungsmethoden
     function fillCheckoutPaymentMethods(user, paymentMethods) {
         let select = $("#checkoutPaymentMethod");
         select.empty();
@@ -191,10 +177,10 @@ $(document).ready(function () {
         if (method === "creditcard") {
             return "Credit Card " + (details ? "(" + details + ")" : "(****)");
         }
-
         return "Invoice";
     }
 
+    // Generiert die Bestellübersicht IM MODAL-FENSTER
     function fillCheckoutCartSummary(user) {
         let cartBody = $("#modalCartItems");
         let cartFoot = $("#modalCartTotal");
@@ -202,13 +188,15 @@ $(document).ready(function () {
         cartFoot.empty();
 
         let total = 0;
+
+        // 1. Schritt: Liest die aktuellen Zeilen aus der Haupttabelle aus und berechnet die Summe der Waren
         $("#cartTableBody tr").each(function () {
             let cols = $(this).find("td");
             if (cols.length >= 4) {
                 let name = $(cols[0]).text();
                 let sum = $(cols[3]).text();
 
-                if(!name.includes("Voucher Discount") && !name.includes("Total:")) {
+                if(!name.includes("Total:")) {
                     total += parseFloat(sum);
                     cartBody.append(`
                         <tr>
@@ -220,19 +208,12 @@ $(document).ready(function () {
             }
         });
 
-        // 1. Zuerst eventuellen Gutscheincode abziehen
-        if (appliedVoucher) {
-            cartBody.append(`
-                <tr class="text-danger fw-bold">
-                    <td>Voucher Discount (${appliedVoucher.code})</td>
-                    <td class="text-end">-${appliedVoucher.value.toFixed(2)} €</td>
-                </tr>
-            `);
-            total = Math.max(0, total - appliedVoucher.value);
-        }
+        // 2. Schritt: Berechne die Steuern direkt vom Warenwert (bevor Guthaben abgezogen wird!)
+        let taxAmount = total * (20 / 120);
 
-        // 2. JETZT NEU: Das User-Guthaben live im Fenster gegenrechnen und anzeigen
+        // 3. Schritt: Das User-Guthaben gegenrechnen
         let userBalance = user && user.balance ? parseFloat(user.balance) : 0.0;
+
         if (userBalance > 0 && total > 0) {
             let balanceToUse = Math.min(total, userBalance);
             cartBody.append(`
@@ -241,11 +222,19 @@ $(document).ready(function () {
                     <td class="text-end">-${balanceToUse.toFixed(2)} €</td>
                 </tr>
             `);
-            // Aktualisiere die Endsumme live (fällt auf 0, wenn genug Guthaben da ist)
+            // Ziehe das verbrauchte Guthaben von der zu zahlenden Endsumme ab
             total = Math.max(0, total - balanceToUse);
         }
 
-        // 3. Finale Endsumme anzeigen
+        // 4. Schritt: Anzeige der Steuern
+        cartFoot.append(`
+            <tr class="text-muted small">
+                <td>Includes 20% VAT:</td>
+                <td class="text-end">${taxAmount.toFixed(2)} €</td>
+            </tr>
+        `);
+
+        // 5. Schritt: Finale Endsumme anzeigen (was der User jetzt tatsächlich noch über externe Zahlungsmittel begleichen muss)
         cartFoot.append(`
             <tr class="table-light fw-bold border-top border-dark">
                 <td>Total to pay:</td>
@@ -254,7 +243,7 @@ $(document).ready(function () {
         `);
     }
 
-    // ERWEITERT: Sendet den Gutscheincode beim Kaufabschluss ans Backend mit
+    // Kauf final absenden
     $("#btnConfirmOrder").on("click", function () {
         bootstrap.Modal.getInstance(document.getElementById("checkoutModal")).hide();
 
@@ -263,8 +252,7 @@ $(document).ready(function () {
             url: "../../backend/services/orderServiceHandler.php",
             data: {
                 method: "placeOrder",
-                paymentMethodId: selectedCheckoutPaymentId,
-                voucherCode: appliedVoucher ? appliedVoucher.code : null // NEU hier
+                paymentMethodId: selectedCheckoutPaymentId
             },
             dataType: "json",
             success: function (res) {
@@ -282,22 +270,20 @@ $(document).ready(function () {
                 } else if (res.error === "invalid_payment_method") {
                     $("#checkoutMsg").html(`<div class="alert alert-warning">Please select a valid payment method.</div>`);
                 } else if (res.success) {
-                    resetVoucherUI(); // Gutschein-State nach Kauf resetten
+                    resetVoucherUI();
                     loadBasket();
                     if (typeof window.refreshCartBadge === "function") {
                         window.refreshCartBadge();
                     }
                     $("#checkoutMsg").html(`
-                    <div class="alert alert-success">Order placed successfully! Order ID: ${res.order_id} | Total: ${res.total} €</div>
-                `);
+                        <div class="alert alert-success">Order placed successfully! Order ID: ${res.order_id} | Total: ${res.total} €</div>
+                    `);
                 }
             }
         });
     });
 
-    // ==========================================
-    // NEU: EVENT-HANDLER FÜR GUTSCHEIN-PRÜFUNG
-    // ==========================================
+    // Event-Handler für das sofortige Aufladen des Gutscheins auf das Konto
     $("#btnRedeemVoucher").on("click", function () {
         let voucherCode = $("#voucherInput").val().trim().toUpperCase();
         let messageDiv = $("#basketVoucherMessage");
@@ -311,26 +297,19 @@ $(document).ready(function () {
             type: "POST",
             url: "../../backend/services/voucherServiceHandler.php",
             data: {
-                method: "redeemVoucher", // Bauen wir als nächstes im Backend
+                method: "redeemVoucher",
                 code: voucherCode
             },
             dataType: "json",
             success: function (response) {
                 if (response.success) {
+                    // Zeigt die grüne Erfolgsmeldung inkl. des geladenen Betrags
                     messageDiv.text(response.message).css("color", "green");
 
-                    // Gutschein-Daten im Frontend zwischenspeichern
-                    appliedVoucher = {
-                        code: voucherCode,
-                        value: parseFloat(response.value)
-                    };
-
-                    // UI sperren
+                    // UI sperren, damit man den Code nicht doppelt absendet
                     $("#voucherInput").prop("disabled", true);
                     $("#btnRedeemVoucher").prop("disabled", true);
 
-                    // Warenkorb neu laden (zieht den Betrag jetzt automatisch ab!)
-                    loadBasket();
                 } else {
                     messageDiv.text(response.message).css("color", "red");
                 }
@@ -343,7 +322,6 @@ $(document).ready(function () {
     });
 
     function resetVoucherUI() {
-        appliedVoucher = null;
         $("#voucherInput").val("").prop("disabled", false);
         $("#btnRedeemVoucher").prop("disabled", false);
         $("#basketVoucherMessage").text("");

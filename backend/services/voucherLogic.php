@@ -1,15 +1,19 @@
 <?php
+// Wir benötigen beide DataHandler, da wir Gutscheindaten prüfen und Userdaten aktualisieren müssen
 require_once "../config/voucherDataHandler.php";
+require_once "../config/userDataHandler.php"; //Damit wir Zugriff auf addToUserBalance() haben
 
 class VoucherLogic {
-    private $dh;
+    private $voucherDh;
+    private $userDh;
 
     public function __construct() {
-        $this->dh = new VoucherDataHandler();
+        $this->voucherDh = new VoucherDataHandler();
+        $this->userDh = new UserDataHandler();
     }
 
     public function handleRequest($method, $data = [], $files = []) {
-        // Sicherheits-Check: Bestimmte Methoden dürfen weiterhin NUR Admins ausführen
+        // Sicherheits-Check: Admin-Methoden schützen
         $adminMethods = ["generateUniqueCode", "createVoucher", "getAllVouchers"];
         if (in_array($method, $adminMethods)) {
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -17,25 +21,58 @@ class VoucherLogic {
             }
         }
 
-      // Für die Kunden-Methode prüfen wir, ob überhaupt jemand eingeloggt ist
-      if ($method === "redeemVoucher") {
-          if (!isset($_SESSION['user_id'])) { // <--- Hier auf 'user_id' geändert!
-              return ["success" => false, "message" => "Please log in to use a voucher."];
-          }
-      }
+        // Sicherheits-Check: Nur eingeloggte Kunden dürfen Gutscheine einlösen
+        if ($method === "redeemVoucher") {
+            if (!isset($_SESSION['user_id'])) {
+                return ["success" => false, "message" => "Please log in to use a voucher."];
+            }
+        }
 
         switch ($method) {
             case "generateUniqueCode":
-                return $this->dh->generateUniqueCode();
-
+                return $this->voucherDh->generateUniqueCode();
             case "createVoucher":
-                return $this->dh->createVoucher($data);
-
+                return $this->voucherDh->createVoucher($data);
             case "getAllVouchers":
-                return $this->dh->getAllVouchers();
+                return $this->voucherDh->getAllVouchers();
 
-            case "redeemVoucher": // NEU: Für den Checkout-Prozess
-                return $this->dh->verifyAndGetVoucher($data["code"] ?? "");
+            case "redeemVoucher":
+                // 1. Schritt: Gutschein-Gültigkeit in der DB prüfen
+                $code = $data["code"] ?? "";
+                $voucherCheck = $this->voucherDh->verifyAndGetVoucher($code);
+
+                // Wenn der Gutschein ungültig, abgelaufen oder bereits benutzt ist -> sofort abbrechen
+                if (!$voucherCheck['success']) {
+                    return $voucherCheck;
+                }
+
+                $voucherValue = (float)$voucherCheck['value'];
+                $userId = $_SESSION['user_id'];
+
+                // 2. Schritt: Den Gutschein-Wert sofort auf das Konto des Users buchen
+                $balanceUpdated = $this->userDh->addToUserBalance($userId, $voucherValue);
+
+                if (!$balanceUpdated) {
+                    return ["success" => false, "message" => "Critical Error: Could not update your account balance."];
+                }
+
+                // 3. Schritt: Gutschein als verbraucht/eingelöst markieren (is_redeemed = 1)
+                $markedAsRedeemed = $this->voucherDh->markAsRedeemed($code);
+
+                if (!$markedAsRedeemed) {
+                    // Falls das Markieren schiefgeht, loggen wir das zur Sicherheit für den Admin
+                    error_log("Warning: Voucher $code was added to User $userId but could not be marked as redeemed in DB!");
+                }
+
+                // 4. Schritt: Erfolgsmeldung vorbereiten und die neue Gesamt-Balance des Users holen
+                $updatedUserProfile = $this->userDh->getUserById($userId);
+                $newBalance = $updatedUserProfile ? (float)$updatedUserProfile['balance'] : $voucherValue;
+
+                return [
+                    "success" => true,
+                    "message" => "Successfully redeemed! " . number_format($voucherValue, 2) . " € added to your account.",
+                    "newBalance" => $newBalance // Schicken wir ans Frontend, damit die UI sich sofort aktualisiert
+                ];
 
             default:
                 return ["success" => false, "message" => "Method not allowed"];

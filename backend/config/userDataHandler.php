@@ -10,7 +10,7 @@ class UserDataHandler {
     }
 
     public function registerUser($userData) {
-        // Serverseitige Validierung auf Vollständigkeit (Laut Spezifikation Pflicht!)
+        // Serverseitige Validierung auf Vollständigkeit
         $requiredFields = ['gender', 'firstName', 'lastName', 'username', 'email', 'address', 'zip', 'city', 'paymentMethod', 'password'];
         foreach ($requiredFields as $field) {
             if (!isset($userData[$field]) || empty(trim($userData[$field]))) {
@@ -80,7 +80,6 @@ class UserDataHandler {
     }
 
     public function loginUser($data) {
-        // SQL-Query erweitert, um auch den Status zu holen
         $sql = "SELECT * FROM users WHERE email = :identifier OR username = :identifier";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':identifier' => $data['identifier']]);
@@ -108,7 +107,6 @@ class UserDataHandler {
         return ["success" => false, "message" => "Incorrect email address/username or password."];
     }
 
-    // (Die Funktionen checkAdminSession, logoutUser, checkSession, saveCartToDb und loadCartFromDb bleiben unverändert wie in deinem Ausgangs-File)
     public function checkAdminSession() {
         if (session_status() == PHP_SESSION_NONE) { session_start(); }
 
@@ -133,7 +131,7 @@ class UserDataHandler {
 
         if (isset($_SESSION['user_id'])) {
 
-            // NEU: Live-Check in der DB, ob der User noch aktiv ist
+            // Live-Check in der DB, ob der User noch aktiv ist
             try {
                 $stmt = $this->db->prepare("SELECT status FROM users WHERE user_id = :uid");
                 $stmt->execute([':uid' => $_SESSION['user_id']]);
@@ -141,11 +139,11 @@ class UserDataHandler {
 
                 // Wenn er in der DB inaktiv ist -> Session zerstören!
                 if ($userStatus === 'inactive') {
-                    $this->logoutUser(); // Ruft deine bestehende Logout-Logik auf (löscht auch Cookies)
+                    $this->logoutUser(); // Ruft bestehende Logout-Logik auf (löscht auch Cookies)
                     return ["loggedIn" => false, "message" => "Account deactivated."];
                 }
             } catch (PDOException $e) {
-                // Bei DB-Fehler im Zweifel eingeloggt lassen oder restriktiv blockieren
+                // Bei DB-Fehler im Zweifel eingeloggt lassen
             }
 
             return ["loggedIn" => true, "role" => $_SESSION['role'], "firstname" => $_SESSION['firstname']];
@@ -607,7 +605,7 @@ class UserDataHandler {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
-                // NEU: Wenn der User über das Cookie kommt, aber inaktiv ist, Token löschen!
+                // Wenn der User über das Cookie kommt, aber inaktiv ist, Token löschen!
                 if ($user['status'] === 'inactive') {
                     $this->clearRememberToken();
                     return false;
