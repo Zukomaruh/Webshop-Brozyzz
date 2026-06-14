@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    //order_id aus URL holen
+    // order_id aus URL holen
     let params = new URLSearchParams(window.location.search);
     let orderId = params.get("order_id");
     if (!orderId) {
@@ -7,7 +7,7 @@ $(document).ready(function() {
         return;
     }
 
-    //order Daten laden
+    // order Daten laden
     $.ajax({
         type: "GET",
         url: "../../backend/services/orderServiceHandler.php",
@@ -31,13 +31,11 @@ $(document).ready(function() {
             let address = JSON.parse(order.shipping_address);
 
             let salutation = "";
-
             if (order.gender === "mr") {
                 salutation = "Mr.";
             } else if (order.gender === "ms") {
                 salutation = "Ms.";
             }
-
 
             $("#customerInfo").html(`
                 ${salutation} ${order.firstname} ${order.lastname}<br>
@@ -57,8 +55,9 @@ $(document).ready(function() {
                     </tr>
                 `);
             });
-            // 6. Summen
-            $("#invoiceSummary").html(`
+
+            // Dynamischer Zusammenbau der Rechnungs-Summenzeilen
+            let summaryHtml = `
                 <tr>
                     <td colspan="3" class="text-end">Subtotal incl. VAT:</td>
                     <td class="text-end">${parseFloat(order.subtotal).toFixed(2)} €</td>
@@ -67,11 +66,38 @@ $(document).ready(function() {
                     <td colspan="3" class="text-end">Included VAT (20%):</td>
                     <td class="text-end">${parseFloat(order.tax_amount).toFixed(2)} €</td>
                 </tr>
+            `;
+
+            // Falls Guthaben genutzt wurde -> Zeile einfügen
+            let discount = order.discount_amount ? parseFloat(order.discount_amount) : 0.0;
+            if (discount > 0) {
+                summaryHtml += `
+                    <tr class="text-success">
+                        <td colspan="3" class="text-end">Account Balance used:</td>
+                        <td class="text-end">-${discount.toFixed(2)} €</td>
+                    </tr>
+                `;
+            }
+
+            // Methode formatieren für die Anzeige
+            let paymentMethodText = order.payment_method ? order.payment_method.toUpperCase() : "N/A";
+            if (order.payment_details) {
+                paymentMethodText += ` (${order.payment_details})`;
+            }
+
+            // Bezahlmethode & Finale Endsumme hinzufügen
+            summaryHtml += `
+                <tr>
+                    <td colspan="3" class="text-end text-muted small">Payment Method:</td>
+                    <td class="text-end text-muted small">${paymentMethodText}</td>
+                </tr>
                 <tr class="table-dark fw-bold">
-                    <td colspan="3" class="text-end">Total:</td>
+                    <td colspan="3" class="text-end">Total to pay:</td>
                     <td class="text-end">${parseFloat(order.total).toFixed(2)} €</td>
                 </tr>
-            `);
+            `;
+
+            $("#invoiceSummary").html(summaryHtml);
         },
         error: function(xhr) {
             console.log(xhr.responseText);
@@ -83,4 +109,4 @@ $(document).ready(function() {
         let parts = dateString.substring(0, 10).split("-");
         return parts[2] + "." + parts[1] + "." + parts[0];
     }
-})
+});

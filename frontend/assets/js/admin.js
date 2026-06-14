@@ -247,7 +247,6 @@ $(document).ready(function () {
                             $("#modalBalance").text("0.00 €");
                         }
 
-                    // REPARIERT: Nativer Bootstrap 5 Aufruf (umgeht den jQuery-Plugin-Fehler)
                     let modalElement = document.getElementById('customerDetailModal');
                     let modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
                     modalInstance.show();
@@ -262,7 +261,7 @@ $(document).ready(function () {
         });
     });
 
-// Event-Handler für View Orders
+    // Event-Handler für View Orders
     $(document).on("click", ".btn-view-orders", function () {
         let userId = $(this).data("id");
         currentCustomerId = userId;
@@ -278,13 +277,13 @@ $(document).ready(function () {
         loadCustomerOrders(userId);
     });
 
-// Zurück zur Customer List
+    // Zurück zur Customer List
     $("#btnBackToCustomerList").click(function () {
         $("#customerOrdersView").hide();
         $("#customerListView").show();
     });
 
-// Lädt alle Bestellungen eines ausgewählten Kunden
+    // Lädt alle Bestellungen eines ausgewählten Kunden
     function loadCustomerOrders(userId) {
         $.ajax({
             type: "POST",
@@ -341,115 +340,135 @@ $(document).ready(function () {
     }
 
     // Event-Handler für Order Details
-    $(document).on("click", ".btn-view-order-detail", function () {
-        let orderId = $(this).data("id");
+        $(document).on("click", ".btn-view-order-detail", function () {
+            let orderId = $(this).data("id");
 
-        $.ajax({
-            type: "POST",
-            url: "../../backend/services/orderServiceHandler.php",
-            data: {
-                method: "getOrderDetailsForAdmin",
-                orderId: orderId
-            },
-            dataType: "json",
+            $.ajax({
+                type: "POST",
+                url: "../../backend/services/orderServiceHandler.php",
+                data: {
+                    method: "getOrderDetailsForAdmin",
+                    orderId: orderId
+                },
+                dataType: "json",
 
-            success: function (response) {
-                if (response.success) {
-                    let order = response.data.order;
-                    let items = response.data.items;
+                success: function (response) {
+                    if (response.success) {
+                        let order = response.data.order;
+                        let items = response.data.items;
 
-                    let html = `
-                    <h5 class="mb-3">Order #${order.id}</h5>
+                        let discountVal = parseFloat(order.discount_amount);
+                        let discountHtml = discountVal > 0
+                            ? `<span class="text-success fw-bold">-${discountVal.toFixed(2)} €</span>`
+                            : `<span>0.00 €</span>`;
 
-                    <table class="table table-sm table-borderless">
-                        <tr>
-                            <td class="fw-bold text-muted" style="width: 160px;">Customer:</td>
-                            <td>${order.firstname} ${order.lastname}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">Date:</td>
-                            <td>${OrderUtils.formatOrderDate(order.created_at, true)}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">Status:</td>
-                            <td>${OrderUtils.renderOrderStatusBadge(order.status)}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">Shipping address:</td>
-                            <td>${formatShippingAddress(order.shipping_address)}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">Subtotal:</td>
-                            <td>${parseFloat(order.subtotal).toFixed(2)} €</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">Tax:</td>
-                            <td>${parseFloat(order.tax_amount).toFixed(2)} €</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">Discount:</td>
-                            <td>${parseFloat(order.discount_amount).toFixed(2)} €</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">Total:</td>
-                            <td><strong>${parseFloat(order.total).toFixed(2)} €</strong></td>
-                        </tr>
-                    </table>
+                        // Zahlungsart & Details kombinieren (z.B. "CREDITCARD (************1234)")
+                        let paymentDetailsHtml = "";
+                        if (order.payment_method) {
+                            paymentDetailsHtml = order.payment_method.toUpperCase();
+                            if (order.payment_details) {
+                                paymentDetailsHtml += ` (${order.payment_details})`;
+                            }
+                        } else {
+                            paymentDetailsHtml = "<span class=\"text-muted\">N/A</span>";
+                        }
 
-                    <h6 class="mt-4">Ordered Products</h6>
-                    <table class="table table-striped table-sm">
-                        <thead>
+                        let html = `
+                        <h5 class="mb-3">Order #${order.id}</h5>
+
+                        <table class="table table-sm table-borderless">
                             <tr>
-                                <th>Product</th>
-                                <th>Quantity</th>
-                                <th>Unit price</th>
-                                <th>Total</th>
-                                <th class="text-end">Action</th>
+                                <td class="fw-bold text-muted" style="width: 160px;">Customer:</td>
+                                <td>${order.firstname} ${order.lastname}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                `;
+                            <tr>
+                                <td class="fw-bold text-muted">Date:</td>
+                                <td>${OrderUtils.formatOrderDate(order.created_at, true)}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Status:</td>
+                                <td>${OrderUtils.renderOrderStatusBadge(order.status)}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Shipping address:</td>
+                                <td>${formatShippingAddress(order.shipping_address)}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Payment method:</td>
+                                <td>${paymentDetailsHtml}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Subtotal:</td>
+                                <td>${parseFloat(order.subtotal).toFixed(2)} €</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Tax:</td>
+                                <td>${parseFloat(order.tax_amount).toFixed(2)} €</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Discount:</td>
+                                <td>${discountHtml}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Total:</td>
+                                <td><strong>${parseFloat(order.total).toFixed(2)} €</strong></td>
+                            </tr>
+                        </table>
 
-                    items.forEach(function (item) {
-                        html += `
-                        <tr>
-                            <td>${item.product_name}</td>
-                            <td>${item.quantity}</td>
-                            <td>${parseFloat(item.unit_price).toFixed(2)} €</td>
-                            <td>${parseFloat(item.total).toFixed(2)} €</td>
-                            <td class="text-end">
-                                <button 
-                                    class="btn btn-sm btn-outline-danger btn-remove-order-item"
-                                    data-order-id="${order.id}"
-                                    data-item-id="${item.order_item_id}">
-                                    Remove
-                                </button>
-                            </td>
-                        </tr>
+                        <h6 class="mt-4">Ordered Products</h6>
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Unit price</th>
+                                    <th>Total</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                     `;
-                    });
 
-                    html += `
-                        </tbody>
-                    </table>
-                `;
+                        items.forEach(function (item) {
+                            html += `
+                            <tr>
+                                <td>${item.product_name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${parseFloat(item.unit_price).toFixed(2)} €</td>
+                                <td>${parseFloat(item.item_total).toFixed(2)} €</td>
+                                <td class="text-end">
+                                    <button
+                                        class="btn btn-sm btn-outline-danger btn-remove-order-item"
+                                        data-order-id="${order.id}"
+                                        data-item-id="${item.order_item_id}">
+                                        Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        });
 
-                    $("#orderDetailContent").html(html);
+                        html += `
+                            </tbody>
+                        </table>
+                    `;
 
-                    let modalElement = document.getElementById("orderDetailModal");
-                    let modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
-                    modalInstance.show();
+                        $("#orderDetailContent").html(html);
 
-                } else {
-                    alert(response.message);
+                        let modalElement = document.getElementById("orderDetailModal");
+                        let modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+                        modalInstance.show();
+
+                    } else {
+                        alert(response.message);
+                    }
+                },
+
+                error: function (xhr) {
+                    console.error("Error loading order details:", xhr.responseText);
                 }
-            },
-
-            error: function (xhr) {
-                console.error("Error loading order details:", xhr.responseText);
-            }
+            });
         });
-    });
 
     //Remove-Click-Handler
     $(document).on("click", ".btn-remove-order-item", function () {
@@ -679,7 +698,7 @@ $(document).ready(function () {
                     response.data.forEach(function (voucher) {
                         let statusBadge = "";
 
-                        // Status ermitteln (Aktuell ist das Jahr 2026)
+                        // Status ermitteln
                         let expiryDate = new Date(voucher.expires_at);
                         let now = new Date();
 
