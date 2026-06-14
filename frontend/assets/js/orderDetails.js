@@ -69,6 +69,13 @@ function displayOrderDetails(data) {
     $("#orderStatus").html(OrderUtils.renderOrderStatusBadge(order.status));
     $("#customerName").text(order.firstname + " " + order.lastname);
 
+    //Anzeige der Bezahlmethode (inkl. Details, falls vorhanden)
+    let paymentText = order.payment_method ? order.payment_method.toUpperCase() : "N/A";
+    if (order.payment_details) {
+        paymentText += ` (${order.payment_details})`;
+    }
+    $("#orderPaymentMethod").text(paymentText);
+
     let tableBody = $("#orderItemsTableBody");
     tableBody.empty();
 
@@ -100,6 +107,16 @@ function displayOrderDetails(data) {
 
     $("#orderSubtotal").text(parseFloat(order.subtotal).toFixed(2) + " €");
     $("#orderTax").text(parseFloat(order.tax_amount).toFixed(2) + " €");
+
+    //Rabatt / Verbrauchtes Kontoguthaben dynamisch anzeigen
+    let discount = order.discount_amount ? parseFloat(order.discount_amount) : 0.0;
+    if (discount > 0) {
+        $("#orderDiscount").text("-" + discount.toFixed(2) + " €");
+        $("#orderDiscountWrapper").removeClass("d-none");
+    } else {
+        $("#orderDiscountWrapper").addClass("d-none");
+    }
+
     $("#orderTotal").text(parseFloat(order.total).toFixed(2) + " €");
 }
 

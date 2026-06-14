@@ -9,23 +9,25 @@ class OrderDataHandler {
         $this->db = $dba->getConnection();
     }
 
-    public function createOrder($userId, $subtotal, $taxAmount, $total, $discountAmount, $shippingAddress) {
-        $stmt = $this->db->prepare("
-            INSERT INTO orders 
-                (user_id, status, subtotal, tax_amount, total, discount_amount, shipping_address)
-            VALUES 
-                (:user_id, 'pending', :subtotal, :tax_amount, :total, :discount_amount, :shipping_address)
-        ");
-        $stmt->execute([
-            ':user_id'          => $userId,
-            ':subtotal'         => $subtotal,
-            ':tax_amount'       => $taxAmount,
-            ':total'            => $total,
-            ':discount_amount'  => $discountAmount,
-            ':shipping_address' => $shippingAddress
-        ]);
-        return $this->db->lastInsertId();
-    }
+    public function createOrder($userId, $subtotal, $taxAmount, $total, $discountAmount, $shippingAddress, $paymentMethod, $paymentDetails) {
+            $stmt = $this->db->prepare("
+                INSERT INTO orders
+                    (user_id, status, subtotal, tax_amount, total, discount_amount, shipping_address, payment_method, payment_details)
+                VALUES
+                    (:user_id, 'pending', :subtotal, :tax_amount, :total, :discount_amount, :shipping_address, :payment_method, :payment_details)
+            ");
+            $stmt->execute([
+                ':user_id'          => $userId,
+                ':subtotal'         => $subtotal,
+                ':tax_amount'       => $taxAmount,
+                ':total'            => $total,
+                ':discount_amount'  => $discountAmount,
+                ':shipping_address' => $shippingAddress,
+                ':payment_method'   => $paymentMethod,
+                ':payment_details'  => $paymentDetails
+            ]);
+            return $this->db->lastInsertId();
+        }
 
     public function createOrderItems($orderId, $items) {
         $stmt = $this->db->prepare("

@@ -5,7 +5,6 @@ $(document).ready(function () {
     // Beim Laden der Seite sofort den Warenkorb anzeigen
     loadBasket();
 
-    // NEU: Event-Handler für das Zahlungsart-Dropdown im Modal.
     // Sorgt dafür, dass die Auswahl des Users tatsächlich in der Variable gespeichert wird!
     $(document).on("change", "#checkoutPaymentMethod", function () {
         selectedCheckoutPaymentId = $(this).val();

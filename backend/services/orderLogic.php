@@ -2,7 +2,7 @@
 require_once "../config/orderDataHandler.php";
 require_once "../config/productDataHandler.php";
 require_once "../config/userDataHandler.php";
-// voucherDataHandler require_once wurde ENTFERNT, da die Bestellung keine Gutscheine mehr kennt!
+
 
 class OrderLogic
 {
@@ -103,8 +103,7 @@ class OrderLogic
         // Vorab das bestehende User-Guthaben aus der DB holen, falls vorhanden
         $userBalanceNum = isset($user['balance']) ? (float)$user['balance'] : 0.0;
 
-        // --- SCHRITT-FÜR-SCHRITT VERRECHNUNG (LEAN & REIN) ---
-
+        //Verrechnung
         // 1. NEU & KORRIGIERT: Die Steuer (20% MwSt.) wird DIREKT vom Brutto-Warenwert berechnet!
         // So bleibt sie steuerrechtlich korrekt, selbst wenn der User am Ende 0 € bar zahlt.
         $taxAmountNum = $subtotalNum * 20 / 120;
@@ -128,38 +127,40 @@ class OrderLogic
         $discountAmount = number_format($totalDiscountNum, 2, '.', '');
 
         $shippingAddress = json_encode([
-            'address' => $user['address'],
-            'zip'     => $user['zip'],
-            'city'    => $user['city'],
-            'payment_method' => $selectedPaymentMethod['method'],
-            'payment_details' => $selectedPaymentMethod['method'] === 'creditcard' ? '****' : null
-        ]);
+                    'address' => $user['address'],
+                    'zip'     => $user['zip'],
+                    'city'    => $user['city']
+                ]);
 
-        try {
-            // Bestellung in DB anlegen
-            $orderId = $this->orderDataHandler->createOrder(
-                $userId, $subtotal, $taxAmount, $total,
-                $discountAmount, $shippingAddress
-            );
+                // SEPARIERUNG: Zahlungsdaten für die neuen Tabellenspalten vorbereiten
+                $paymentMethod = $selectedPaymentMethod['method'];
+                $paymentDetails = $selectedPaymentMethod['method'] === 'creditcard' ? '****' : null;
 
-            // Posten der Bestellung anlegen
-            $this->orderDataHandler->createOrderItems($orderId, $items);
+                try {
+                    // Bestellung in DB anlegen (Mit den 2 neuen Parametern am Ende)
+                    $orderId = $this->orderDataHandler->createOrder(
+                        $userId, $subtotal, $taxAmount, $total,
+                        $discountAmount, $shippingAddress, $paymentMethod, $paymentDetails
+                    );
 
-            // GUTHABEN-KONTO AKTUALISIEREN:
-            // Wenn Kontoguthaben zur Zahlung verwendet wurde -> Jetzt vom Userkonto in der DB abziehen
-            if ($balanceToUseNum > 0.0) {
-                $this->userDataHandler->deductUserBalance($userId, $balanceToUseNum);
-            }
+                    // Posten der Bestellung anlegen
+                    $this->orderDataHandler->createOrderItems($orderId, $items);
 
-            // Warenkorb leeren
-            $_SESSION['cart'] = [];
-            $this->userDataHandler->clearCart($userId);
+                    // GUTHABEN-KONTO AKTUALISIEREN:
+                    // Wenn Kontoguthaben zur Zahlung verwendet wurde -> Jetzt vom Userkonto in der DB abziehen
+                    if ($balanceToUseNum > 0.0) {
+                        $this->userDataHandler->deductUserBalance($userId, $balanceToUseNum);
+                    }
 
-            return [
-                "success"  => true,
-                "order_id" => $orderId,
-                "total"    => $total
-            ];
+                    // Warenkorb leeren
+                    $_SESSION['cart'] = [];
+                    $this->userDataHandler->clearCart($userId);
+
+                    return [
+                        "success"  => true,
+                        "order_id" => $orderId,
+                        "total"    => $total
+                    ];
 
         } catch (Exception $e) {
             error_log("Order error: " . $e->getMessage());
