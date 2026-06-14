@@ -9,19 +9,18 @@ class OrderDataHandler {
         $this->db = $dba->getConnection();
     }
 
-    public function createOrder($userId, $subtotal, $taxAmount, $total, $couponCode, $discountAmount, $shippingAddress) {
+    public function createOrder($userId, $subtotal, $taxAmount, $total, $discountAmount, $shippingAddress) {
         $stmt = $this->db->prepare("
             INSERT INTO orders 
-                (user_id, status, subtotal, tax_amount, total, coupon_code, discount_amount, shipping_address)
+                (user_id, status, subtotal, tax_amount, total, discount_amount, shipping_address)
             VALUES 
-                (:user_id, 'pending', :subtotal, :tax_amount, :total, :coupon_code, :discount_amount, :shipping_address)
+                (:user_id, 'pending', :subtotal, :tax_amount, :total, :discount_amount, :shipping_address)
         ");
         $stmt->execute([
             ':user_id'          => $userId,
             ':subtotal'         => $subtotal,
             ':tax_amount'       => $taxAmount,
             ':total'            => $total,
-            ':coupon_code'      => $couponCode,
             ':discount_amount'  => $discountAmount,
             ':shipping_address' => $shippingAddress
         ]);
