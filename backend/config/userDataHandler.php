@@ -261,7 +261,7 @@ class UserDataHandler {
         }
 
         try {
-            $sql = "SELECT username, firstname, lastname, gender, email, address, zip, city, payment_method
+            $sql = "SELECT username, firstname, lastname, gender, email, address, zip, city, payment_method, balance
                     FROM users WHERE user_id = :uid";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':uid' => $data['userId']]);

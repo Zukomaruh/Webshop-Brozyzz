@@ -87,6 +87,13 @@ $(document).ready(function () {
         $("#city").val(user.city);
         $("#paymentMethod").val(user.payment_method);
 
+        //Guthaben einfügen und auf 2 Nachkommastellen formatieren
+        if (user.balance !== undefined && user.balance !== null) {
+            $("#balance").val(parseFloat(user.balance).toFixed(2));
+        } else {
+            $("#balance").val("0.00");
+        }
+
         if (user.payment_method === "creditcard") {
             $("#paymentDetails").val(getMaskedCreditCardDisplay(user.payment_details));
         } else {
@@ -108,6 +115,8 @@ $(document).ready(function () {
     // Edit Profile Clicked
     $("#btnToggleEdit").click(function () {
         $("#profileForm").find('input, select').prop('disabled', false);
+
+        $("#balance").prop('disabled', true);
 
         if ($("#paymentMethod").val() === "creditcard") {
             $("#paymentDetails").val('').attr("placeholder", "Enter new card number or leave empty to keep current");
@@ -218,6 +227,9 @@ $(document).ready(function () {
         $("#profileForm").find('input, select').prop('disabled', true);
         $("#paymentDetails").attr("placeholder", "");
         setAdditionalPaymentViewMode();
+
+        //Sicherstellen, dass das Guthaben-Feld immer gesperrt bleibt
+        $("#balance").prop('disabled', true);
 
         // Tausche echte Eingabefelder wieder zurück gegen die Attrappe
         $("#passwordChangeGroup").attr("style", "display: none !important;");
