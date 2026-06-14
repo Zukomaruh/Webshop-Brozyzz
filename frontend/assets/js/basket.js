@@ -180,7 +180,7 @@ $(document).ready(function () {
         return "Invoice";
     }
 
-    // Generiert die Bestellübersicht IM MODAL-FENSTER (Steuern korrigiert bei Guthaben-Nutzung)
+    // Generiert die Bestellübersicht IM MODAL-FENSTER
     function fillCheckoutCartSummary(user) {
         let cartBody = $("#modalCartItems");
         let cartFoot = $("#modalCartTotal");
@@ -189,7 +189,7 @@ $(document).ready(function () {
 
         let total = 0;
 
-        // 1. SCHRITT: Liest die aktuellen Zeilen aus der Haupttabelle aus und berechnet die Summe der Waren
+        // 1. Schritt: Liest die aktuellen Zeilen aus der Haupttabelle aus und berechnet die Summe der Waren
         $("#cartTableBody tr").each(function () {
             let cols = $(this).find("td");
             if (cols.length >= 4) {
@@ -208,12 +208,10 @@ $(document).ready(function () {
             }
         });
 
-        // 2. SCHRITT: Berechne die Steuern DIREKT vom Warenwert (bevor Guthaben abgezogen wird!)
-        // Da deine Produktpreise sehr wahrscheinlich Bruttobeträge sind, ziehen wir hier die 20% MwSt. heraus.
-        // (Formel: Bruttosumme * 20 / 120  bzw. Bruttosumme * 0.166667)
+        // 2. Schritt: Berechne die Steuern direkt vom Warenwert (bevor Guthaben abgezogen wird!)
         let taxAmount = total * (20 / 120);
 
-        // 3. SCHRITT: Das User-Guthaben gegenrechnen
+        // 3. Schritt: Das User-Guthaben gegenrechnen
         let userBalance = user && user.balance ? parseFloat(user.balance) : 0.0;
 
         if (userBalance > 0 && total > 0) {
@@ -228,7 +226,7 @@ $(document).ready(function () {
             total = Math.max(0, total - balanceToUse);
         }
 
-        // 4. SCHRITT: Anzeige der Steuern (Bleibt jetzt immer erhalten, auch bei 0 € Rest!)
+        // 4. Schritt: Anzeige der Steuern
         cartFoot.append(`
             <tr class="text-muted small">
                 <td>Includes 20% VAT:</td>
@@ -236,7 +234,7 @@ $(document).ready(function () {
             </tr>
         `);
 
-        // 5. SCHRITT: Finale Endsumme anzeigen (was der User jetzt tatsächlich noch über externe Zahlungsmittel begleichen muss)
+        // 5. Schritt: Finale Endsumme anzeigen (was der User jetzt tatsächlich noch über externe Zahlungsmittel begleichen muss)
         cartFoot.append(`
             <tr class="table-light fw-bold border-top border-dark">
                 <td>Total to pay:</td>
@@ -255,7 +253,6 @@ $(document).ready(function () {
             data: {
                 method: "placeOrder",
                 paymentMethodId: selectedCheckoutPaymentId
-                // voucherCode wurde hier komplett entfernt, da das Backend beim Bestellen nichts mehr prüfen muss!
             },
             dataType: "json",
             success: function (res) {
@@ -286,7 +283,7 @@ $(document).ready(function () {
         });
     });
 
-    // NEU & REIN: Event-Handler für das sofortige Aufladen des Gutscheins auf das Konto
+    // Event-Handler für das sofortige Aufladen des Gutscheins auf das Konto
     $("#btnRedeemVoucher").on("click", function () {
         let voucherCode = $("#voucherInput").val().trim().toUpperCase();
         let messageDiv = $("#basketVoucherMessage");
@@ -313,7 +310,6 @@ $(document).ready(function () {
                     $("#voucherInput").prop("disabled", true);
                     $("#btnRedeemVoucher").prop("disabled", true);
 
-                    // Optional: Man könnte hier die Anzeige eines "Current Balance"-Labels auf der Seite aktualisieren via response.newBalance
                 } else {
                     messageDiv.text(response.message).css("color", "red");
                 }

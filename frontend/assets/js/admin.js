@@ -247,7 +247,6 @@ $(document).ready(function () {
                             $("#modalBalance").text("0.00 €");
                         }
 
-                    // REPARIERT: Nativer Bootstrap 5 Aufruf (umgeht den jQuery-Plugin-Fehler)
                     let modalElement = document.getElementById('customerDetailModal');
                     let modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
                     modalInstance.show();
@@ -358,7 +357,6 @@ $(document).ready(function () {
                         let order = response.data.order;
                         let items = response.data.items;
 
-                        // Rabatt Styling: Grün geschrieben (text-success) statt rotem Badge
                         let discountVal = parseFloat(order.discount_amount);
                         let discountHtml = discountVal > 0
                             ? `<span class="text-success fw-bold">-${discountVal.toFixed(2)} €</span>`

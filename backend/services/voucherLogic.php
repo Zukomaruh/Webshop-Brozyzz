@@ -1,5 +1,5 @@
 <?php
-// Wir benötigen beide DataHandler, da wir Gutscheindaten prüfen und Userdaten aktualisieren müssen!
+// Wir benötigen beide DataHandler, da wir Gutscheindaten prüfen und Userdaten aktualisieren müssen
 require_once "../config/voucherDataHandler.php";
 require_once "../config/userDataHandler.php"; //Damit wir Zugriff auf addToUserBalance() haben
 
@@ -9,7 +9,7 @@ class VoucherLogic {
 
     public function __construct() {
         $this->voucherDh = new VoucherDataHandler();
-        $this->userDh = new UserDataHandler(); //Instanziierung des User-DataHandlers
+        $this->userDh = new UserDataHandler();
     }
 
     public function handleRequest($method, $data = [], $files = []) {
@@ -37,7 +37,7 @@ class VoucherLogic {
                 return $this->voucherDh->getAllVouchers();
 
             case "redeemVoucher":
-                // 1. SCHRITT: Gutschein-Gültigkeit in der DB prüfen
+                // 1. Schritt: Gutschein-Gültigkeit in der DB prüfen
                 $code = $data["code"] ?? "";
                 $voucherCheck = $this->voucherDh->verifyAndGetVoucher($code);
 
@@ -49,15 +49,14 @@ class VoucherLogic {
                 $voucherValue = (float)$voucherCheck['value'];
                 $userId = $_SESSION['user_id'];
 
-                // 2. SCHRITT: Den Gutschein-Wert sofort auf das Konto des Users buchen
-                // Hier nutzen wir deine bereits existierende Funktion aus dem UserDataHandler!
+                // 2. Schritt: Den Gutschein-Wert sofort auf das Konto des Users buchen
                 $balanceUpdated = $this->userDh->addToUserBalance($userId, $voucherValue);
 
                 if (!$balanceUpdated) {
                     return ["success" => false, "message" => "Critical Error: Could not update your account balance."];
                 }
 
-                // 3. SCHRITT: Gutschein als verbraucht/eingelöst markieren (is_redeemed = 1)
+                // 3. Schritt: Gutschein als verbraucht/eingelöst markieren (is_redeemed = 1)
                 $markedAsRedeemed = $this->voucherDh->markAsRedeemed($code);
 
                 if (!$markedAsRedeemed) {
@@ -65,7 +64,7 @@ class VoucherLogic {
                     error_log("Warning: Voucher $code was added to User $userId but could not be marked as redeemed in DB!");
                 }
 
-                // 4. SCHRITT: Erfolgsmeldung vorbereiten und die NEUE Gesamt-Balance des Users holen
+                // 4. Schritt: Erfolgsmeldung vorbereiten und die neue Gesamt-Balance des Users holen
                 $updatedUserProfile = $this->userDh->getUserById($userId);
                 $newBalance = $updatedUserProfile ? (float)$updatedUserProfile['balance'] : $voucherValue;
 

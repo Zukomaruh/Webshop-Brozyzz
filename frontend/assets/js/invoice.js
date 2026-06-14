@@ -27,7 +27,7 @@ $(document).ready(function() {
             $("#invoiceDate").text("Date: " + formatDate(order.created_at));
             $("#deliveryDate").text("Delivery date: " + formatDate(order.created_at));
 
-            // Kundeninfo aus shipping_address (Jetzt bereinigt von Zahlungsdaten!)
+            // Kundeninfo aus shipping_address
             let address = JSON.parse(order.shipping_address);
 
             let salutation = "";

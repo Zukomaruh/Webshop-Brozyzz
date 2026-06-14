@@ -104,8 +104,7 @@ class OrderLogic
         $userBalanceNum = isset($user['balance']) ? (float)$user['balance'] : 0.0;
 
         //Verrechnung
-        // 1. NEU & KORRIGIERT: Die Steuer (20% MwSt.) wird DIREKT vom Brutto-Warenwert berechnet!
-        // So bleibt sie steuerrechtlich korrekt, selbst wenn der User am Ende 0 € bar zahlt.
+        // 1. Die Steuer (20% MwSt.) wird vom Brutto-Warenwert berechnet
         $taxAmountNum = $subtotalNum * 20 / 120;
 
         // 2. Jetzt das Kunden-Guthaben auf die Summe anrechnen
@@ -132,12 +131,12 @@ class OrderLogic
                     'city'    => $user['city']
                 ]);
 
-                // SEPARIERUNG: Zahlungsdaten für die neuen Tabellenspalten vorbereiten
+                //Zahlungsdaten für die neuen Tabellenspalten vorbereiten
                 $paymentMethod = $selectedPaymentMethod['method'];
                 $paymentDetails = $selectedPaymentMethod['method'] === 'creditcard' ? '****' : null;
 
                 try {
-                    // Bestellung in DB anlegen (Mit den 2 neuen Parametern am Ende)
+                    // Bestellung in DB anlegen
                     $orderId = $this->orderDataHandler->createOrder(
                         $userId, $subtotal, $taxAmount, $total,
                         $discountAmount, $shippingAddress, $paymentMethod, $paymentDetails
