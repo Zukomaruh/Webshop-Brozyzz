@@ -96,7 +96,6 @@
                             </div>
 
                             <!-- Payment Details -->
-                            <!-- Payment Details -->
                             <h4 class="mb-3 mt-4 text-secondary">Payment Details</h4>
 
                             <!-- Default Payment (bestehend, read-only Bereich) -->
@@ -120,35 +119,11 @@
                                     <!-- wird per JS befüllt -->
                                 </div>
 
-                                <!-- Add-Button (immer sichtbar) -->
+
+                                <!-- Add-Button wird im Edit Mode per JS angezeigt -->
                                 <button type="button" id="btnAddPaymentMethod" class="btn btn-outline-secondary btn-sm mt-1">
                                     + Add Payment Method
                                 </button>
-
-                                <!-- Inline-Formular (standardmäßig versteckt) -->
-                                <div id="addPaymentMethodForm" class="mt-3 p-3 border rounded bg-light" style="display:none;">
-                                    <h6 class="mb-3">New Payment Method</h6>
-                                    <div class="row g-2 align-items-end">
-                                        <div class="col-md-4">
-                                            <label class="form-label">Method</label>
-                                            <select class="form-select form-select-sm" id="newPaymentMethodSelect">
-                                                <option value="">-- Select --</option>
-                                                <option value="invoice">Invoice</option>
-                                                <option value="creditcard">Credit Card</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4" id="newCardDetailsGroup" style="display:none;">
-                                            <label class="form-label">Card Number</label>
-                                            <input type="text" class="form-control form-control-sm" id="newPaymentDetails"
-                                                   placeholder="Card number">
-                                        </div>
-                                        <div class="col-auto">
-                                            <button type="button" id="btnSaveNewPayment" class="btn btn-success btn-sm">Save</button>
-                                            <button type="button" id="btnCancelNewPayment" class="btn btn-secondary btn-sm ms-1">Cancel</button>
-                                        </div>
-                                    </div>
-                                    <div id="addPaymentMsg" class="mt-2" style="display:none;"></div>
-                                </div>
                             </div>
 
                             <!-- Optische Leseattrape des Passwort felds für den Lesemodus -> keine pw-Daten übertragen!-->

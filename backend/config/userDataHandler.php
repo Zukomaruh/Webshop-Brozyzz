@@ -371,6 +371,8 @@ class UserDataHandler {
         return ["success" => false, "message" => "Failed to update profile."];
     }
 
+    // Updates existing additional payment methods and inserts newly added ones.
+    // New methods are detected by the temporary frontend id "new".
     private function updateAdditionalPaymentMethods($userData) {
         if (!isset($userData['additionalPaymentMethods']) || !is_array($userData['additionalPaymentMethods'])) {
             return ["success" => true];
@@ -378,14 +380,55 @@ class UserDataHandler {
 
         $seenMethods = [];
         foreach ($userData['additionalPaymentMethods'] as $paymentMethodData) {
-            $paymentId = (int)($paymentMethodData['id'] ?? 0);
+        // Existing payment methods have a numeric database id.
+        // Newly added rows are sent with the temporary id "new".
+            $rawPaymentId = $paymentMethodData['id'] ?? 0;
+            $isNewPaymentMethod = ($rawPaymentId === 'new');
+            $paymentId = $isNewPaymentMethod ? 0 : (int)$rawPaymentId;
             $method = trim($paymentMethodData['paymentMethod'] ?? '');
             $details = trim($paymentMethodData['details'] ?? '');
 
-            if ($paymentId <= 0 || !in_array($method, ['invoice', 'creditcard'], true)) {
+            if (!$isNewPaymentMethod && $paymentId <= 0) {
                 return ["success" => false, "message" => "Invalid additional payment method."];
             }
 
+            if (!in_array($method, ['invoice', 'creditcard'], true)) {
+                return ["success" => false, "message" => "Invalid additional payment method."];
+            }
+
+            // Insert newly added payment methods after validating required fields and duplicates.
+            if ($isNewPaymentMethod) {
+                if ($method === 'creditcard' && empty($details)) {
+                    return ["success" => false, "message" => "Please enter your credit card number."];
+                }
+
+                $finalDetails = $method === 'creditcard'
+                    ? $this->normalizePaymentDetails($method, $details)
+                    : null;
+
+                if ($this->paymentMethodExists($_SESSION['user_id'], $method, $finalDetails)) {
+                    return ["success" => false, "message" => "This payment method already exists on your account."];
+                }
+
+                if ($this->defaultPaymentMethodExists($_SESSION['user_id'], $method, $finalDetails)) {
+                    return ["success" => false, "message" => "This payment method already exists on your account."];
+                }
+
+                $insertStmt = $this->db->prepare(
+                    "INSERT INTO payment_methods (user_id, method, details, is_default)
+                     VALUES (:uid, :method, :details, 0)"
+                );
+
+                $insertStmt->execute([
+                    ':uid' => $_SESSION['user_id'],
+                    ':method' => $method,
+                    ':details' => $finalDetails
+                ]);
+
+                continue;
+            }
+
+            // Existing payment methods must belong to the logged-in user before they can be updated.
             $currentStmt = $this->db->prepare(
                 "SELECT method, details FROM payment_methods WHERE id = :id AND user_id = :uid"
             );
@@ -443,6 +486,7 @@ class UserDataHandler {
         return ["success" => true];
     }
 
+    // Normalizes credit card details before duplicate checks.
     private function normalizePaymentDetails($method, $details) {
         if ($method !== 'creditcard') {
             return null;
@@ -455,6 +499,7 @@ class UserDataHandler {
         return $method . ':' . ($this->normalizePaymentDetails($method, $details) ?? '');
     }
 
+    // Checks whether the same additional payment method already exists for this user.
     private function paymentMethodExists($userId, $method, $details, $excludePaymentId = null) {
         $normalizedDetails = $this->normalizePaymentDetails($method, $details);
         $sql = "SELECT id, details FROM payment_methods
@@ -483,6 +528,7 @@ class UserDataHandler {
         return false;
     }
 
+    // Prevents saving an additional payment method that already exists as the user's default method.
     private function defaultPaymentMethodExists($userId, $method, $details) {
         $normalizedDetails = $this->normalizePaymentDetails($method, $details);
         $stmt = $this->db->prepare(
@@ -650,7 +696,8 @@ class UserDataHandler {
             }
         }
 
-        //Get all methods of current user
+        // Loads all additional payment methods of the logged-in user.
+        // Credit card details are masked before they are sent to the frontend.
         public function getPaymentMethods() {
             if (session_status() == PHP_SESSION_NONE) { session_start(); }
             if (!isset($_SESSION['user_id'])) {
@@ -678,51 +725,16 @@ class UserDataHandler {
             }
         }
 
-        //Add Payment Methods to Database
-        public function addPaymentMethod($data) {
-            if (session_status() == PHP_SESSION_NONE) { session_start(); }
-            if (!isset($_SESSION['user_id'])) {
-                return ["success" => false, "message" => "Unauthorized."];
-            }
-
-            $method  = trim($data['paymentMethod']  ?? '');
-            $details = trim($data['details'] ?? '');
-
-            if (empty($method)) {
-                return ["success" => false, "message" => "Please select a payment method."];
-            }
-            if ($method === 'creditcard' && empty($details)) {
-                return ["success" => false, "message" => "Please enter your credit card number."];
-            }
-
-            try {
-                $normalizedDetails = $this->normalizePaymentDetails($method, $details);
-                if (
-                    $this->paymentMethodExists($_SESSION['user_id'], $method, $normalizedDetails) ||
-                    $this->defaultPaymentMethodExists($_SESSION['user_id'], $method, $normalizedDetails)
-                ) {
-                    return ["success" => false, "message" => "This payment method already exists on your account."];
-                }
-
-                $stmt = $this->db->prepare(
-                    "INSERT INTO payment_methods (user_id, method, details, is_default) 
-                 VALUES (:uid, :method, :details, 0)"
-                );
-                $stmt->execute([
-                    ':uid'     => $_SESSION['user_id'],
-                    ':method'  => $method,
-                    ':details' => $normalizedDetails,
-                ]);
-                return ["success" => true, "message" => "Payment method added successfully!"];
-            } catch (PDOException $e) {
-                return ["success" => false, "message" => "DB Error: " . $e->getMessage()];
-            }
-        }
-
+        // Deletes an additional payment method of the logged-in user.
+        // The current password is checked server-side because frontend checks can be bypassed.
         public function deletePaymentMethod($data) {
             if (session_status() == PHP_SESSION_NONE) { session_start(); }
             if (!isset($_SESSION['user_id'])) {
                 return ["success" => false, "message" => "Unauthorized."];
+            }
+
+            if (!$this->verifyCurrentPassword($data['passwordConfirm'] ?? '')) {
+                return ["success" => false, "message" => "Confirmation failed. Current password incorrect."];
             }
 
             $paymentId = (int)($data['paymentId'] ?? 0);
@@ -786,5 +798,18 @@ class UserDataHandler {
             error_log("Error deducting user balance: " . $e->getMessage());
             return false;
         }
+    }
+
+    // Verifies the current password before sensitive account changes are executed.
+    private function verifyCurrentPassword($passwordConfirm) {
+        if (empty(trim($passwordConfirm ?? ''))) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare("SELECT password FROM users WHERE user_id = :uid");
+        $stmt->execute([':uid' => $_SESSION['user_id']]);
+        $passwordHash = $stmt->fetchColumn();
+
+        return $passwordHash && password_verify($passwordConfirm, $passwordHash);
     }
 }
