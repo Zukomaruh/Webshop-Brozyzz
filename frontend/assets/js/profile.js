@@ -265,8 +265,8 @@ $(document).ready(function () {
         }
     }
 
-    // Enables editing for already saved additional payment methods.
-    // Existing credit card numbers are not shown again and can be replaced by entering a new number.
+    // Collects existing and newly added payment methods for the profile save request.
+    // Newly added rows are sent with the temporary payment id "new".
     function collectAdditionalPaymentMethods() {
         let paymentMethods = [];
 
@@ -647,7 +647,7 @@ $(document).ready(function () {
         let detailsId = "additionalPaymentDetailsNew" + index;
 
         container.append(`
-        <div class="row mb-3 g-2 additional-payment-row" data-is-new="1">
+        <div class="row mb-3 g-2 additional-payment-row">
             <div class="col-md-5">
                 <label for="${methodId}" class="form-label">Additional Payment Method</label>
                 <select class="form-select additional-payment-method"
