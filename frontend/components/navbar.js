@@ -74,7 +74,7 @@ $.ajax({
 
 // Funktion zum Aktualisieren des Badges
 window.refreshCartBadge = function() {
-    // Nutzt deine 'base' Variable aus der navbar.js
+    // Nutzt die 'base' Variable aus der navbar.js
     const backendUrl = backendBase + 'backend/services/cartServiceHandler.php';
 
     $.ajax({

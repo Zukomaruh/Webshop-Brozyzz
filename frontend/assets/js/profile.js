@@ -482,7 +482,7 @@ $(document).ready(function () {
 
 
 
-    //      PAYMENT METHODS
+    // PAYMENT METHODS
 
     // Zusätzliche Zahlungsmethoden laden.
     // Danach wird sichergestellt, dass Add/Delete im View Mode nicht sichtbar sind.
