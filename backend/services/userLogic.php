@@ -32,8 +32,6 @@ class UserLogic {
                  return $this->userDataHandler->getUserDetailsForAdmin($data);
             case "getPaymentMethods":
                 return $this->userDataHandler->getPaymentMethods();
-            case "addPaymentMethod":
-                return $this->userDataHandler->addPaymentMethod($data);
             case "deletePaymentMethod":
                 return $this->userDataHandler->deletePaymentMethod($data);
             default:

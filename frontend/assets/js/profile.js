@@ -1,6 +1,10 @@
 $(document).ready(function () {
     let currentProfileData = null;
 
+    // Zentraler Status für den Profil-Bearbeitungsmodus.
+    // Dieser Status gilt für alle Profiländerungen, also auch für zusätzliche Zahlungsmethoden.
+    let profileEditMode = false;
+
     loadUserProfile();
 
     const params = new URLSearchParams(window.location.search);
@@ -22,7 +26,6 @@ $(document).ready(function () {
         e.preventDefault();
         resetProfileFormToSavedData()
         showMyOrdersTab();
-
         loadOrders();
     });
 
@@ -36,6 +39,8 @@ $(document).ready(function () {
 
         $("#btnToggleEdit").removeClass("d-none");
         $("#profileMessage").addClass("d-none");
+
+        updatePaymentActionButtons();
     }
 
     function showMyOrdersTab() {
@@ -66,6 +71,7 @@ $(document).ready(function () {
                 if (response.success) {
                     currentProfileData = response.data;
                     fillFormFields(currentProfileData);
+                    updatePaymentActionButtons();
                 } else {
                     showMessage(response.message, "danger");
                 }
@@ -112,10 +118,12 @@ $(document).ready(function () {
         return maskCreditCard(cardNumber);
     }
 
-    // Edit Profile Clicked
-    $("#btnToggleEdit").click(function () {
-        $("#profileForm").find('input, select').prop('disabled', false);
+    // Enables editing for profile data and payment methods.
+    // Existing credit card numbers are cleared in the input fields so they are not exposed.
+    function enterProfileEditMode() {
+        profileEditMode = true;
 
+        $("#profileForm").find('input, select').prop('disabled', false);
         $("#balance").prop('disabled', true);
 
         if ($("#paymentMethod").val() === "creditcard") {
@@ -137,8 +145,51 @@ $(document).ready(function () {
         $("#confirmNewPassword").val('');
         $("#passwordConfirm").prop('required', true).val('');
 
-        $(this).addClass("d-none");
+        $("#btnToggleEdit").addClass("d-none");
         $("#profileMessage").addClass("d-none");
+
+        updatePaymentActionButtons();
+    }
+
+    // Deaktiviert den Bearbeitungsmodus und setzt die Ansicht zurück.
+    function exitProfileEditMode() {
+        profileEditMode = false;
+
+        $("#profileForm").find("input, select").prop("disabled", true);
+        $("#paymentDetails").attr("placeholder", "");
+
+        setAdditionalPaymentViewMode();
+
+        // Sicherstellen, dass das Guthaben-Feld immer gesperrt bleibt
+        $("#balance").prop("disabled", true);
+
+        // Tausche echte Eingabefelder wieder zurück gegen die Attrappe
+        $("#passwordChangeGroup").attr("style", "display: none !important;");
+        $("#dummyPasswordGroup").attr("style", "display: block !important;");
+
+        // Verstecke Kontrollbereiche
+        $("#actionButtons").attr("style", "display: none !important;");
+        $("#passwordConfirmGroup").attr("style", "display: none !important;");
+
+        $("#newPassword").val("");
+        $("#confirmNewPassword").val("");
+        $("#passwordConfirm").prop("required", false).val("");
+
+        $("#btnToggleEdit").removeClass("d-none");
+
+        updatePaymentActionButtons();
+    }
+
+    // Zeigt oder versteckt Add/Delete Buttons für zusätzliche Zahlungsmethoden.
+    // Wichtig: Delete-Buttons werden dynamisch erzeugt, daher wird diese Funktion nach jedem Laden der Zahlungsmethoden aufgerufen.
+    function updatePaymentActionButtons() {
+        $("#btnAddPaymentMethod").toggleClass("d-none", !profileEditMode);
+        $(".btn-delete-payment-method").toggleClass("d-none", !profileEditMode);
+    }
+
+    // Edit Profile Clicked
+    $("#btnToggleEdit").click(function () {
+        enterProfileEditMode();
     });
 
     $("#btnCancelEdit").click(function () {
@@ -147,10 +198,14 @@ $(document).ready(function () {
 
     $("#paymentMethod").change(function () {
         toggleCreditCardDisplay($(this).val());
-        if ($(this).val() === "creditcard" && !$(this).is(':disabled')) {
-            $("#paymentDetails").attr("placeholder", "Enter card number").prop('required', true);
+
+        if ($(this).val() === "creditcard" && !$(this).is(":disabled")) {
+            $("#paymentDetails")
+                .attr("placeholder", "Enter card number")
+                .prop("required", true);
         }
     });
+
 
     function toggleCreditCardDisplay(method) {
         if (method === "creditcard") {
@@ -160,6 +215,8 @@ $(document).ready(function () {
         }
     }
 
+    // Enables editing for already saved additional payment methods.
+    // Existing credit card numbers are not shown again and can be replaced by entering a new number.
     function enableAdditionalPaymentEditMode() {
         $(".additional-payment-method").prop('disabled', false);
         $(".additional-payment-details")
@@ -171,6 +228,8 @@ $(document).ready(function () {
         });
     }
 
+    // Restores the read-only view for additional payment methods.
+    // Credit card details are shown only as masked placeholders.
     function setAdditionalPaymentViewMode() {
         $(".additional-payment-method").prop('disabled', true);
         $(".additional-payment-details")
@@ -206,6 +265,8 @@ $(document).ready(function () {
         }
     }
 
+    // Collects existing and newly added payment methods for the profile save request.
+    // Newly added rows are sent with the temporary payment id "new".
     function collectAdditionalPaymentMethods() {
         let paymentMethods = [];
 
@@ -224,26 +285,7 @@ $(document).ready(function () {
     }
 
     function switchToViewMode() {
-        $("#profileForm").find('input, select').prop('disabled', true);
-        $("#paymentDetails").attr("placeholder", "");
-        setAdditionalPaymentViewMode();
-
-        //Sicherstellen, dass das Guthaben-Feld immer gesperrt bleibt
-        $("#balance").prop('disabled', true);
-
-        // Tausche echte Eingabefelder wieder zurück gegen die Attrappe
-        $("#passwordChangeGroup").attr("style", "display: none !important;");
-        $("#dummyPasswordGroup").attr("style", "display: block !important;");
-
-        // Verstecke Kontrollbereiche
-        $("#actionButtons").attr("style", "display: none !important;");
-        $("#passwordConfirmGroup").attr("style", "display: none !important;");
-
-        $("#newPassword").val('');
-        $("#confirmNewPassword").val('');
-        $("#passwordConfirm").prop('required', false).val('');
-
-        $("#btnToggleEdit").removeClass("d-none");
+        exitProfileEditMode();
     }
 
     //Verhindert, dass nicht gespeicherte Daten in den Feldern bleiben
@@ -253,6 +295,9 @@ $(document).ready(function () {
         }
 
         switchToViewMode();
+
+        // Entfernt auch neu hinzugefügte, aber nicht gespeicherte Payment-Method-Zeilen.
+        loadAdditionalPaymentMethods();
     }
 
 
@@ -296,9 +341,9 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.success) {
                     showMessage(response.message, "success");
+                    switchToViewMode();
                     loadUserProfile();
                     loadAdditionalPaymentMethods();
-                    switchToViewMode();
                 } else {
                     showMessage(response.message, "danger");
                     $("#passwordConfirm").val('').focus();
@@ -336,7 +381,6 @@ $(document).ready(function () {
             dataType: "json",
 
             success: function (response) {
-                console.log(response);
 
                 if (response.error === "not_logged_in") {
                     $("#ordersTableWrapper").addClass("d-none");
@@ -425,68 +469,6 @@ $(document).ready(function () {
         });
     }
 
-    // Hilfsfunktionen für Bestelldatum
-    function formatOrderDate(dateString) {
-        if (!dateString) {
-            return "-";
-        }
-
-        let datePart = dateString.substring(0, 10);
-        let parts = datePart.split("-");
-
-        if (parts.length !== 3) {
-            return dateString;
-        }
-
-        return parts[2] + "." + parts[1] + "." + parts[0];
-    }
-
-    // Hilfsfunktion für Bestellstatus
-    function getStatusInfo(status) {
-        switch (status) {
-            case "pending":
-                return {
-                    text: "Pending",
-                    badgeClass: "bg-warning"
-                };
-
-            case "processing":
-                return {
-                    text: "Processing",
-                    badgeClass: "bg-info"
-                };
-
-            case "shipped":
-                return {
-                    text: "Shipped",
-                    badgeClass: "bg-primary"
-                };
-
-            case "delivered":
-                return {
-                    text: "Delivered",
-                    badgeClass: "bg-success"
-                };
-
-            case "cancelled":
-                return {
-                    text: "Cancelled",
-                    badgeClass: "bg-danger"
-                };
-
-            case "refunded":
-                return {
-                    text: "Refunded",
-                    badgeClass: "bg-secondary"
-                };
-
-            default:
-                return {
-                    text: status,
-                    badgeClass: "bg-dark"
-                };
-        }
-    }
     $(document).on("click", ".btn-print-invoice", function () {
         let orderId = $(this).data("order-id");
         window.open("invoice.html?order_id=" + orderId, "_blank");
@@ -497,9 +479,18 @@ $(document).ready(function () {
         window.location.href = "orderDetails.html?order_id=" + orderId;
     });
 
-    //Add Payment
-    loadAdditionalPaymentMethods();
 
+
+
+    //      PAYMENT METHODS
+
+    // Zusätzliche Zahlungsmethoden laden.
+    // Danach wird sichergestellt, dass Add/Delete im View Mode nicht sichtbar sind.
+    loadAdditionalPaymentMethods();
+    updatePaymentActionButtons();
+
+    // Loads all additional payment methods of the logged-in user.
+    // The default payment method is loaded separately from the user profile.
     function loadAdditionalPaymentMethods() {
         $.ajax({
             type: "POST",
@@ -508,20 +499,25 @@ $(document).ready(function () {
             data: { method: "getPaymentMethods" },
             dataType: "json",
             success: function (response) {
-                if (!response.success) return;
+                if (!response.success) {
+                    updatePaymentActionButtons()
+                    return;
+                }
 
                 let container = $("#additionalPaymentMethodsList");
                 container.empty();
 
-                // Nur nicht-default anzeigen (default ist schon oben sichtbar)
-                let extras = response.data.filter(p => p.is_default == 0);
+                // Alle Methoden, die vom Backend kommen, sind zusätzliche Zahlungsmethoden.
+                // Die Default-Methode steht bereits oben im Profil und kommt aus der users-Tabelle.
+                let paymentMethods = response.data;
 
-                if (extras.length === 0) {
+                if (!paymentMethods || paymentMethods.length === 0) {
                     container.html('<p class="text-muted small mb-0">No additional payment methods saved.</p>');
+                    updatePaymentActionButtons();
                     return;
                 }
 
-                extras.forEach(function (pm, index) {
+                paymentMethods.forEach(function (pm, index) {
                     let details = pm.method === 'creditcard'
                         ? getMaskedCreditCardDisplay(pm.details)
                         : '';
@@ -530,26 +526,43 @@ $(document).ready(function () {
                     let cardColumnStyle = pm.method === 'creditcard' ? '' : ' style="display:none;"';
 
                     container.append(`
-                        <div class="row mb-3 g-2 additional-payment-row">
-                            <div class="col-md-5">
-                                <label for="${methodId}" class="form-label">Additional Payment Method</label>
-                                <select class="form-select additional-payment-method" id="${methodId}" data-payment-id="${pm.id}" data-original-method="${pm.method}" disabled>
-                                    <option value="invoice" ${pm.method === 'invoice' ? 'selected' : ''}>Invoice</option>
-                                    <option value="creditcard" ${pm.method === 'creditcard' ? 'selected' : ''}>Credit Card</option>
-                                </select>
-                            </div>
-                            <div class="col-md-5 additional-card-group"${cardColumnStyle}>
-                                <label for="${detailsId}" class="form-label">Credit Card Number</label>
-                                <input type="text" class="form-control additional-payment-details" id="${detailsId}" value="${escapeHtml(details)}" disabled>
-                            </div>
-                            <div class="col-auto d-flex align-items-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-payment-method" data-payment-id="${pm.id}">
-                                    Delete
-                                </button>
-                            </div>
+                    <div class="row mb-3 g-2 additional-payment-row">
+                        <div class="col-md-5">
+                            <label for="${methodId}" class="form-label">Additional Payment Method</label>
+                            <select class="form-select additional-payment-method"
+                                    id="${methodId}"
+                                    data-payment-id="${pm.id}"
+                                    data-original-method="${pm.method}"
+                                    disabled>
+                                <option value="invoice" ${pm.method === "invoice" ? "selected" : ""}>Invoice</option>
+                                <option value="creditcard" ${pm.method === "creditcard" ? "selected" : ""}>Credit Card</option>
+                            </select>
                         </div>
-                    `);
+
+                        <div class="col-md-5 additional-card-group"${cardColumnStyle}>
+                            <label for="${detailsId}" class="form-label">Credit Card Number</label>
+                            <input type="text"
+                                   class="form-control additional-payment-details"
+                                   id="${detailsId}"
+                                   value="${escapeHtml(details)}"
+                                   disabled>
+                        </div>
+
+                        <div class="col-auto d-flex align-items-end">
+                            <button type="button"
+                                    class="btn btn-outline-danger btn-sm btn-delete-payment-method d-none"
+                                    data-payment-id="${pm.id}">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `);
                 });
+
+                updatePaymentActionButtons();
+            },
+            error: function () {
+                updatePaymentActionButtons();
             }
         });
     }
@@ -564,37 +577,38 @@ $(document).ready(function () {
     }
 
     $("#btnAddPaymentMethod").click(function () {
-        $("#addPaymentMethodForm").show();
-        $("#btnAddPaymentMethod").hide();
-        $("#addPaymentMsg").hide();
-        $("#addPaymentMethodForm").find('input, select').prop('disabled', false);
-        $("#newPaymentMethodSelect").val('');
-        $("#newPaymentDetails").val('');
-        toggleNewCreditCardDisplay('');
-    });
+        // Zusätzliche Zahlungsmethoden dürfen nur im Profil-Edit-Mode hinzugefügt werden.
+        if (!profileEditMode) {
+            return;
+        }
 
-    $("#btnCancelNewPayment").click(function () {
-        $("#addPaymentMethodForm").hide();
-        $("#btnAddPaymentMethod").show();
-        $("#newPaymentMethodSelect").val('');
-        $("#newPaymentDetails").val('');
-        toggleNewCreditCardDisplay('');
-    });
-
-    $("#newPaymentMethodSelect").change(function () {
-        toggleNewCreditCardDisplay($(this).val());
+        addNewPaymentMethodRow();
     });
 
     $(document).on("change", ".additional-payment-method", function () {
         toggleAdditionalCreditCardDisplay($(this));
     });
 
+    // Deletes an existing payment method immediately.
+    // This action requires the current password and an additional confirmation dialog.
     $(document).on("click", ".btn-delete-payment-method", function () {
+        // Zusätzliche Zahlungsmethoden dürfen nur im Profil-Edit-Mode gelöscht werden.
+        if (!profileEditMode) {
+            return;
+        }
+
+        if ($("#passwordConfirm").val().trim() === "") {
+            showMessage("Please enter your current password before deleting a payment method.", "danger");
+            $("#passwordConfirm").focus();
+            return;
+        }
+
         let paymentId = $(this).data("payment-id");
 
         if (!confirm("Delete this payment method?")) {
             return;
         }
+
 
         $.ajax({
             type: "POST",
@@ -602,80 +616,77 @@ $(document).ready(function () {
             cache: false,
             data: {
                 method: "deletePaymentMethod",
-                paymentId: paymentId
+                paymentId: paymentId,
+                passwordConfirm: $("#passwordConfirm").val()
             },
             dataType: "json",
             success: function (response) {
                 if (response.success) {
-                    showAddPaymentMsg(response.message, "success");
+                    showMessage(response.message, "success");
                     loadAdditionalPaymentMethods();
                 } else {
-                    showAddPaymentMsg(response.message, "danger");
+                    showMessage(response.message, "danger");
                 }
             },
             error: function () {
-                showAddPaymentMsg("Server error.", "danger");
+                showMessage("Server error.", "danger");
             }
         });
     });
 
-    function toggleNewCreditCardDisplay(method) {
-        if (method === "creditcard") {
-            $("#newCardDetailsGroup").show();
-            $("#newPaymentDetails")
-                .attr("placeholder", "Enter card number")
-                .prop('required', true);
-        } else {
-            $("#newCardDetailsGroup").hide();
-            $("#newPaymentDetails")
-                .prop('required', false)
-                .val('');
-        }
+    // Fügt eine neue, noch nicht gespeicherte Zahlungsmethode in die Profilansicht ein.
+    // Gespeichert wird sie erst über den großen "Save Changes"-Button unten.
+    function addNewPaymentMethodRow() {
+        let container = $("#additionalPaymentMethodsList");
+
+        // Falls vorher der "No additional payment methods"-Text angezeigt wurde, entfernen.
+        container.find(".text-muted").remove();
+
+        let index = $(".additional-payment-row").length;
+        let methodId = "additionalPaymentMethodNew" + index;
+        let detailsId = "additionalPaymentDetailsNew" + index;
+
+        container.append(`
+        <div class="row mb-3 g-2 additional-payment-row">
+            <div class="col-md-5">
+                <label for="${methodId}" class="form-label">Additional Payment Method</label>
+                <select class="form-select additional-payment-method"
+                        id="${methodId}"
+                        data-payment-id="new"
+                        data-original-method=""
+                        required>
+                    <option value="">-- Select --</option>
+                    <option value="invoice">Invoice</option>
+                    <option value="creditcard">Credit Card</option>
+                </select>
+            </div>
+
+            <div class="col-md-5 additional-card-group" style="display:none;">
+                <label for="${detailsId}" class="form-label">Credit Card Number</label>
+                <input type="text"
+                       class="form-control additional-payment-details"
+                       id="${detailsId}"
+                       placeholder="Enter card number">
+            </div>
+
+            <div class="col-auto d-flex align-items-end">
+                <button type="button"
+                        class="btn btn-outline-danger btn-sm btn-remove-unsaved-payment-method">
+                    Remove
+                </button>
+            </div>
+        </div>
+    `);
     }
 
-    $("#btnSaveNewPayment").click(function () {
-        let method  = $("#newPaymentMethodSelect").val();
-        let details = $("#newPaymentDetails").val().trim();
+    // Entfernt eine neu hinzugefügte, aber noch nicht gespeicherte Zahlungsmethode wieder aus der Ansicht.
+    $(document).on("click", ".btn-remove-unsaved-payment-method", function () {
+        $(this).closest(".additional-payment-row").remove();
 
-        if (!method) {
-            showAddPaymentMsg("Please select a payment method.", "danger");
-            return;
+        if ($(".additional-payment-row").length === 0) {
+            $("#additionalPaymentMethodsList").html(
+                '<p class="text-muted small mb-0">No additional payment methods saved.</p>'
+            );
         }
-        if (method === 'creditcard' && !details) {
-            showAddPaymentMsg("Please enter your card number.", "danger");
-            return;
-        }
-
-        $.ajax({
-            type: "POST",
-            url: "../../backend/services/userServiceHandler.php",
-            cache: false,
-            data: { method: "addPaymentMethod", paymentMethod: method, details: details },
-            dataType: "json",
-            success: function (response) {
-                if (response.success) {
-                    showAddPaymentMsg(response.message, "success");
-                    loadAdditionalPaymentMethods();
-                    setTimeout(function () {
-                        $("#addPaymentMethodForm").hide();
-                        $("#btnAddPaymentMethod").show();
-                        $("#addPaymentMsg").hide();
-                    }, 1500);
-                } else {
-                    showAddPaymentMsg(response.message, "danger");
-                }
-            },
-            error: function () {
-                showAddPaymentMsg("Server error.", "danger");
-            }
-        });
     });
-
-    function showAddPaymentMsg(text, type) {
-        $("#addPaymentMsg")
-            .text(text)
-            .removeClass("alert alert-danger alert-success")
-            .addClass("alert alert-" + type)
-            .show();
-    }
 });
