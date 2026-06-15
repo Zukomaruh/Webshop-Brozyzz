@@ -1,4 +1,5 @@
 <?php
+/*
 session_start();
 header('Content-Type: application/json');
 
@@ -10,3 +11,4 @@ $debug = [
 ];
 
 echo json_encode($debug, JSON_PRETTY_PRINT);
+*/

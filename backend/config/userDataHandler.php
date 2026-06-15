@@ -779,7 +779,7 @@ class UserDataHandler {
          }
     }
 
-    //NEU: Zieht einen genutzten Betrag vom Guthaben des Users ab
+    // Zieht einen genutzten Betrag vom Guthaben des Users ab
 
     public function deductUserBalance($userId, $amount) {
         try {

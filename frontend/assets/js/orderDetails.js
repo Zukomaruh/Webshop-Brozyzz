@@ -91,7 +91,6 @@ function displayOrderDetails(data) {
         items.forEach(function (item) {
             let unitPrice = parseFloat(item.unit_price).toFixed(2);
 
-            // REPARIERT: Nutzt jetzt 'item_total' aus dem angepassten Backend-Query
             let itemTotalFormatted = parseFloat(item.item_total).toFixed(2);
 
             let row = `

@@ -51,7 +51,7 @@ $(document).ready(function() {
                         <td>${item.product_name}</td>
                         <td class="text-center">${item.quantity}</td>
                         <td class="text-end">${parseFloat(item.unit_price).toFixed(2)} €</td>
-                        <td class="text-end">${parseFloat(item.total).toFixed(2)} €</td>
+                        <td class="text-end">${parseFloat(item.item_total).toFixed(2)} €</td>
                     </tr>
                 `);
             });
