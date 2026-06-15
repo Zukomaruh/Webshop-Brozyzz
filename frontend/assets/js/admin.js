@@ -94,7 +94,7 @@ $(document).ready(function () {
                             <td>
                                 <img src="../../backend/productpictures/${product.image}" height="50">
                             </td>
-                            <td>${product.description}</td>
+                            <td>${product.name}</td>
                             <td>${product.price} €</td>
                             <td>${product.category}</td>
                             <td>${product.rating}</td>

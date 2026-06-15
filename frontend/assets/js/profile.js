@@ -308,7 +308,7 @@ $(document).ready(function () {
         let newPassword = $("#newPassword").val();
         let confirmNewPassword = $("#confirmNewPassword").val();
 
-        // NEU: Zeigt dem User eine Fehlermeldung, wenn Passwörter ungleich sind
+        // Zeigt dem User eine Fehlermeldung, wenn Passwörter ungleich sind
         if (newPassword !== "" || confirmNewPassword !== "") {
             if (newPassword !== confirmNewPassword) {
                 showMessage("New passwords do not match! Please check your input.", "danger");
@@ -482,7 +482,7 @@ $(document).ready(function () {
 
 
 
-    //      PAYMENT METHODS
+    // PAYMENT METHODS
 
     // Zusätzliche Zahlungsmethoden laden.
     // Danach wird sichergestellt, dass Add/Delete im View Mode nicht sichtbar sind.

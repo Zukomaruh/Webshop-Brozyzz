@@ -57,7 +57,7 @@ $(document).ready(function () {
         });
     });
 
-    // LOGIN (Nutzt jetzt den flexiblen Identifier für Email/Username)
+    // LOGIN (Nutzt den flexiblen Identifier für Email/Username)
     $("#loginForm").submit(function (e) {
         e.preventDefault();
 

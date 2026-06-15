@@ -3,7 +3,6 @@ class User {
     public $id;
     public $firstName;
     public $lastName;
-    public $gender;
     public $username;
     public $email;
     public $address;
@@ -13,11 +12,10 @@ class User {
     public $paymentDetails;
     public $role;
 
-    public function __construct($id, $firstName, $lastName, $gender, $username, $email, $address, $zip, $city, $paymentMethod, $paymentDetails, $role) {
+    public function __construct($id, $firstName, $lastName, $username, $email, $address, $zip, $city, $paymentMethod, $paymentDetails, $role) {
         $this->id = $id;
         $this->firstName = $firstName;
         $this->lastName = $lastName;
-        $this->gender = $gender;
         $this->username = $username;
         $this->email = $email;
         $this->address = $address;
